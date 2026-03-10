@@ -23,4 +23,14 @@ with open(f'{location}/customer_data.csv', 'w') as file:
 
         file.write(f"{uniqueID},{firstname},{surname},{email},{status}{"\n" if i != rows - 1 else ""}")
 
-print([ID for ID in validIDs])
+with open(f'{location}/order_data.csv', 'w') as file:
+    file.write('UniqueID,CustomerID,Product Name,Quantity,Unit Price\n')
+
+    for i in range(rows):
+        uniqueID = f"ORD{str(uids[i + rows]).zfill(4)}"
+        customerID = random.choice(validIDs)
+        productName = f'{random.choice(['Flight', 'Taxi', 'Train', 'Bus', 'Coach', 'Tube', 'Gondola', 'Ship'])} Ticket from {random.choice(["London", "Paris", "New York", "Tokyo", "Sydney", "Berlin", "Moscow"])} to {random.choice(["Rome", "Madrid", "Dubai", "Singapore", "Hong Kong", "Los Angeles"])}'
+        quantity = random.randint(1, 10)
+        unitPrice = round(random.uniform(10.0, 400.0), 2)
+
+        file.write(f"{uniqueID},{customerID},{productName},{quantity},{unitPrice}{"\n" if i != rows - 1 else ""}")
