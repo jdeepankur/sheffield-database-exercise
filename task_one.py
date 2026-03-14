@@ -1,4 +1,4 @@
-import csv, rich
+import csv
 from utilities.database import Database
 
 tables = ["customers", "orders"]

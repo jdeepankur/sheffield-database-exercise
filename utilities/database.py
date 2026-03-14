@@ -13,6 +13,12 @@ cursor = db.cursor(buffered=True)
 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {dbname}")
 cursor.execute(f"USE {dbname}")
 
+def tablecheck(func):
+    def wrapper(table, *args, **kwargs):
+        if not Database.isTable(table):
+            return None
+        return func(table, *args, **kwargs)
+    return wrapper
 
 class Database:
     @staticmethod
@@ -47,17 +53,13 @@ class Database:
         db.commit()
 
     @staticmethod
+    @tablecheck
     def getColumn(table, column):
-        if not Database.isTable(table):
-            return None
-        else:
-            cursor.execute(f"SELECT {column} FROM {table}")
-            return cursor.fetchall()
+        cursor.execute(f"SELECT {column} FROM {table}")
+        return cursor.fetchall()
 
     @staticmethod
+    @tablecheck
     def getRow(table, column, value):
-        if not Database.isTable(table):
-            return None
-        else:
-            cursor.execute(f"SELECT * FROM {table} WHERE {column} = '{value}'")
-            return cursor.fetchone()
+        cursor.execute(f"SELECT * FROM {table} WHERE {column} = '{value}'")
+        return cursor.fetchone()

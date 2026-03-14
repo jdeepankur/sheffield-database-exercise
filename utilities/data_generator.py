@@ -20,7 +20,11 @@ with open(f"{location}/customers_data.csv", "w") as file:
         validIDs.append(uniqueID := f"CUS{str(uids[i]).zfill(4)}")
         firstname = names.get_first_name()
         surname = names.get_last_name()
-        email = f"{randomcase(firstname)}.{randomcase(surname)}{random.randint(100, 999)}@{random.choice(["gmail", "yahoo", "yandex" "hotmail", "outlook"])}.{random.choice(["org", "com", "net", "co.uk", "gov"])}"
+        email = (
+            f"{randomcase(firstname)}.{randomcase(surname)}{random.randint(100, 999)}@"
+            f"{random.choice(['gmail', 'yahoo', 'yandex', 'hotmail', 'outlook'])}."
+            f"{random.choice(['org', 'com', 'net', 'co.uk', 'gov'])}"
+        )
         status = random.choice(["active", "archived", "suspended"])
 
         file.write(
