@@ -1,7 +1,8 @@
 from task_one import Database
 import utilities.api as api
 
-def fetchCustomer(id):
+def fetchCustomer(id, pretty=False):
+    print(pretty)
     customer = Database.getRow("customers", "UniqueID", id)[0]
 
     if customer:

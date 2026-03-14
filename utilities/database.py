@@ -1,11 +1,17 @@
-import mysql.connector as mysqldb
+import utilities.dbsetup as dbsetup, mysql.connector as mysqldb
 from utilities.environment import env
 
 dbname = env("DB_NAME")
 
-# First a connection has to be established to the mySQL database
+# First we make sure that mySQL is running
+dbsetup.run()
+dbsetup.wait(mysqldb)
+
+# Next a connection has to be established to the mySQL database
 db = mysqldb.connect(
-    host=env("DB_HOST"), user=env("DB_USER"), password=env("DB_PASSWORD")
+    host=env("DB_HOST"), 
+    user=env("DB_USER"), 
+    password=env("DB_PASSWORD")
 )
 cursor = db.cursor(buffered=True)
 
