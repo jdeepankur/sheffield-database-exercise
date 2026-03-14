@@ -23,8 +23,8 @@ def optionalParam(name, default, type=str):
                 param_value = request.args.get(param_name, param_default)
 
                 if type != str:
-                    param_value = eval(param_value)
-                    # This fallback prevents attempts to inject code
+                    param_value = eval(param_value) if isinstance(param_value, str) else param_value
+                    # This next fallback prevents attempts to inject code
                     if not isinstance(param_value, type):
                         param_value = param_default
                 setattr(wrapper, param_name, param_value)

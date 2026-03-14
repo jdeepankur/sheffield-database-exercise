@@ -42,13 +42,30 @@ def fetchCustomer(id):
     else:
         customer = Database.getRow("customers", "UniqueID", id)
         if customer:
-            return {
+            orderlist = []
+            if (orders := Database.getRow("orders", "CustomerID", customer[0][0])) is not None:
+                for order in orders:
+                    orderlist.append({
+                        "OrderID": order[0],
+                        "Product": order[2],
+                        "Quantity": order[3],
+                        "Price": order[4]
+                    })
+
+            response = {
+            "Customer Profile":{
                 "CustomerID": customer[0][0],
                 "FirstName": customer[0][1],
                 "LastName": customer[0][2],
                 "Email": customer[0][3],
                 "Status": customer[0][4]
+                }
             }
+
+            if orderlist:
+                response["Orders"] = {order["OrderID"]:{**order, "OrderID": None} for order in orderlist}
+
+            return response
         else:
             return {"error": "Customer not found"}
 
