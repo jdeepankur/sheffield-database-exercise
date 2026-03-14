@@ -5,15 +5,14 @@ dbname = env("DB_NAME")
 
 # First a connection has to be established to the mySQL database
 db = mysqldb.connect(
-    host=env("DB_HOST"),
-    user=env("DB_USER"),
-    password=env("DB_PASSWORD")
+    host=env("DB_HOST"), user=env("DB_USER"), password=env("DB_PASSWORD")
 )
 cursor = db.cursor(buffered=True)
 
 # Now the database can be created and entered if it doesn't already exist
 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {dbname}")
 cursor.execute(f"USE {dbname}")
+
 
 class Database:
     @staticmethod
@@ -28,7 +27,9 @@ class Database:
 
     @staticmethod
     def ensureTable(table, columns):
-        cursor.execute(f"CREATE TABLE IF NOT EXISTS {table} ({', '.join(f'{column} VARCHAR(255)' for column in columns)});")
+        cursor.execute(
+            f"CREATE TABLE IF NOT EXISTS {table} ({', '.join(f'{column} VARCHAR(255)' for column in columns)});"
+        )
 
     @staticmethod
     def isTable(table):
@@ -39,12 +40,12 @@ class Database:
     def insert(table, columns, row):
         Database.ensureTable(table, columns)
 
-        columns = ', '.join(columns)
-        values = ', '.join(f"'{value}'" for value in row)
+        columns = ", ".join(columns)
+        values = ", ".join(f"'{value}'" for value in row)
         cursor.execute(f"INSERT INTO {table} ({columns}) VALUES ({values})")
 
         db.commit()
-    
+
     @staticmethod
     def getColumn(table, column):
         if not Database.isTable(table):
