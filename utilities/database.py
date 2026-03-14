@@ -9,7 +9,7 @@ db = mysqldb.connect(
     user=env("DB_USER"),
     password=env("DB_PASSWORD")
 )
-cursor = db.cursor()
+cursor = db.cursor(buffered=True)
 
 # Now the database can be created and entered if it doesn't already exist
 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {dbname}")
@@ -31,6 +31,11 @@ class Database:
         cursor.execute(f"CREATE TABLE IF NOT EXISTS {table} ({', '.join(f'{column} VARCHAR(255)' for column in columns)});")
 
     @staticmethod
+    def isTable(table):
+        cursor.execute(f"SHOW TABLES LIKE '{table}'")
+        return cursor.fetchone() is not None
+
+    @staticmethod
     def insert(table, columns, row):
         Database.ensureTable(table, columns)
 
@@ -39,3 +44,19 @@ class Database:
         cursor.execute(f"INSERT INTO {table} ({columns}) VALUES ({values})")
 
         db.commit()
+    
+    @staticmethod
+    def getColumn(table, column):
+        if not Database.isTable(table):
+            return None
+        else:
+            cursor.execute(f"SELECT {column} FROM {table}")
+            return cursor.fetchall()
+
+    @staticmethod
+    def getRow(table, column, value):
+        if not Database.isTable(table):
+            return None
+        else:
+            cursor.execute(f"SELECT * FROM {table} WHERE {column} = '{value}'")
+            return cursor.fetchone()

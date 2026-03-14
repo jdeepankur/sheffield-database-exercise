@@ -1,4 +1,4 @@
-UniqueID,CustomerID,Product Name,Quantity,Unit Price
+Unique ID,Customer ID,Product Name,Quantity,Unit Price
 ORD9752,CUS3834,Flight Ticket from Moscow to Los Angeles,1,333.82
 ORD2307,CUS1840,Ship Ticket from Sydney to Dubai,4,376.84
 ORD0292,CUS3791,Flight Ticket from New York to Hong Kong,3,212.49
