@@ -8,7 +8,7 @@ for name in tables:
 
     with open(raw_data, "r") as f:
         rows = csv.reader(f)
-        columns = next(rows)
+        columns = [column.replace(" ", "") for column in next(rows)]
 
         for row in rows:
             if not Database.getRow(name, columns[0], row[0]):
