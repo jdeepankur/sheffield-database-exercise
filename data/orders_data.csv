@@ -1,51 +1,51 @@
-UniqueID,CustomerID,Product Name,Quantity,Unit Price
-ORD8904,CUS3460,Gondola Ticket from Berlin to Singapore,6,104.37
-ORD9537,CUS8275,Taxi Ticket from Tokyo to Singapore,8,95.12
-ORD4636,CUS2361,Train Ticket from Tokyo to Los Angeles,6,74.09
-ORD6380,CUS2502,Train Ticket from Berlin to Singapore,10,214.81
-ORD1307,CUS5405,Train Ticket from Berlin to Dubai,8,315.89
-ORD9153,CUS7907,Bus Ticket from Paris to Hong Kong,3,375.57
-ORD0993,CUS9413,Train Ticket from Paris to Singapore,7,307.29
-ORD2082,CUS7907,Train Ticket from London to Dubai,2,190.43
-ORD1448,CUS2330,Gondola Ticket from New York to Madrid,10,289.3
-ORD0601,CUS9959,Coach Ticket from Tokyo to Hong Kong,1,282.85
-ORD0731,CUS3460,Flight Ticket from Moscow to Hong Kong,5,339.69
-ORD2634,CUS2587,Bus Ticket from New York to Dubai,6,293.32
-ORD5873,CUS2361,Tube Ticket from Berlin to Madrid,4,28.14
-ORD6568,CUS2555,Flight Ticket from Moscow to Rome,10,134.5
-ORD8411,CUS5807,Coach Ticket from New York to Rome,4,234.02
-ORD5995,CUS2361,Ship Ticket from Moscow to Hong Kong,3,30.12
-ORD1705,CUS6930,Tube Ticket from New York to Singapore,6,370.29
-ORD3765,CUS2587,Bus Ticket from Paris to Dubai,5,161.79
-ORD1613,CUS9959,Tube Ticket from Sydney to Singapore,5,264.38
-ORD7448,CUS3460,Bus Ticket from New York to Hong Kong,2,345.65
-ORD1480,CUS8121,Train Ticket from Tokyo to Hong Kong,4,153.87
-ORD9454,CUS8275,Gondola Ticket from Moscow to Singapore,9,167.56
-ORD6309,CUS6930,Bus Ticket from New York to Rome,2,44.25
-ORD1511,CUS8771,Gondola Ticket from Sydney to Singapore,9,367.7
-ORD4123,CUS7401,Coach Ticket from Paris to Madrid,6,278.66
-ORD5374,CUS0345,Coach Ticket from Tokyo to Singapore,10,329.11
-ORD4787,CUS7907,Taxi Ticket from Moscow to Singapore,6,119.98
-ORD1019,CUS6312,Coach Ticket from New York to Madrid,10,112.13
-ORD2048,CUS9669,Gondola Ticket from New York to Madrid,9,80.58
-ORD7403,CUS8314,Gondola Ticket from Paris to Singapore,8,296.59
-ORD7106,CUS3460,Gondola Ticket from Berlin to Los Angeles,10,240.13
-ORD0540,CUS9413,Tube Ticket from Paris to Hong Kong,1,236.3
-ORD2496,CUS9379,Flight Ticket from New York to Los Angeles,1,240.65
-ORD4469,CUS7907,Taxi Ticket from New York to Los Angeles,3,384.93
-ORD6516,CUS2587,Flight Ticket from Berlin to Rome,3,142.7
-ORD2152,CUS9030,Ship Ticket from London to Hong Kong,1,76.14
-ORD7838,CUS7907,Flight Ticket from Tokyo to Hong Kong,1,297.28
-ORD7023,CUS2361,Taxi Ticket from Moscow to Dubai,10,89.78
-ORD0980,CUS9379,Coach Ticket from Sydney to Madrid,9,138.87
-ORD0607,CUS4520,Train Ticket from New York to Los Angeles,9,174.56
-ORD1153,CUS8679,Coach Ticket from Paris to Los Angeles,3,76.3
-ORD9001,CUS5399,Ship Ticket from Berlin to Madrid,5,192.28
-ORD5023,CUS8275,Train Ticket from Tokyo to Hong Kong,1,306.01
-ORD0441,CUS9379,Bus Ticket from Tokyo to Los Angeles,9,259.86
-ORD0944,CUS2502,Coach Ticket from Sydney to Los Angeles,3,141.85
-ORD7447,CUS2626,Train Ticket from New York to Madrid,2,131.38
-ORD6220,CUS7907,Flight Ticket from Berlin to Dubai,4,195.08
-ORD5947,CUS8009,Bus Ticket from Sydney to Los Angeles,10,156.36
-ORD2622,CUS8771,Ship Ticket from Sydney to Singapore,1,303.81
-ORD0196,CUS0697,Coach Ticket from New York to Los Angeles,9,378.24
+UniqueID,CustomerID,Product Name,Quantity,Unit Price,Delivery Method
+ORD0122,CUS0232,Bus Ticket from London to Dubai,7,197.35,Mobile
+ORD9728,CUS5363,Coach Ticket from Berlin to Hong Kong,3,56.99,Pick-up at Station
+ORD2975,CUS2964,Bus Ticket from New York to Dubai,4,147.89,Pick-up at Station
+ORD5479,CUS8303,Train Ticket from Moscow to Hong Kong,6,72.79,Pick-up at Station
+ORD5135,CUS0903,Train Ticket from Berlin to Los Angeles,8,317.34,Carrier Pigeon
+ORD9853,CUS5512,Gondola Ticket from London to Dubai,3,195.27,Mobile
+ORD0568,CUS0926,Train Ticket from Berlin to Rome,2,225.4,Carrier Pigeon
+ORD5273,CUS8303,Flight Ticket from Tokyo to Rome,4,122.9,Carrier Pigeon
+ORD5524,CUS1915,Ship Ticket from Tokyo to Dubai,2,267.5,Fax
+ORD4179,CUS0584,Coach Ticket from Tokyo to Los Angeles,1,15.68,Fax
+ORD6599,CUS5512,Tube Ticket from Tokyo to Singapore,8,166.57,Mobile
+ORD3785,CUS7805,Tube Ticket from London to Madrid,8,154.21,Fax
+ORD3612,CUS8424,Flight Ticket from London to Singapore,8,366.4,Postage
+ORD4544,CUS3960,Ship Ticket from Paris to Dubai,5,262.28,Mobile
+ORD2003,CUS5512,Taxi Ticket from Berlin to Singapore,2,355.27,Postage
+ORD0857,CUS2828,Train Ticket from London to Hong Kong,8,20.96,Postage
+ORD6647,CUS9921,Bus Ticket from Moscow to Los Angeles,6,306.21,Carrier Pigeon
+ORD2055,CUS1597,Coach Ticket from Tokyo to Singapore,10,62.81,Carrier Pigeon
+ORD8238,CUS3568,Gondola Ticket from Moscow to Rome,4,21.88,Pick-up at Station
+ORD7262,CUS1353,Train Ticket from Paris to Madrid,4,344.71,Fax
+ORD5898,CUS3484,Gondola Ticket from New York to Rome,4,238.89,Fax
+ORD7906,CUS9921,Flight Ticket from Sydney to Dubai,1,324.17,Postage
+ORD7391,CUS5512,Taxi Ticket from New York to Madrid,5,127.77,Fax
+ORD0511,CUS7049,Flight Ticket from Moscow to Hong Kong,9,368.51,Pick-up at Station
+ORD7679,CUS2062,Flight Ticket from Moscow to Singapore,6,103.71,Mobile
+ORD8979,CUS2703,Bus Ticket from Berlin to Rome,1,395.53,Postage
+ORD9427,CUS1206,Flight Ticket from Sydney to Dubai,4,58.9,Postage
+ORD2991,CUS9515,Gondola Ticket from Paris to Singapore,2,191.1,Pick-up at Station
+ORD8270,CUS1178,Taxi Ticket from Sydney to Madrid,9,235.52,Carrier Pigeon
+ORD4378,CUS3960,Ship Ticket from Sydney to Los Angeles,7,386.41,Postage
+ORD0352,CUS0584,Tube Ticket from New York to Madrid,7,267.82,Fax
+ORD8247,CUS6489,Tube Ticket from Tokyo to Los Angeles,10,388.07,Mobile
+ORD6102,CUS0584,Coach Ticket from London to Rome,4,304.82,Pick-up at Station
+ORD9620,CUS0926,Taxi Ticket from Moscow to Rome,10,176.71,Carrier Pigeon
+ORD4266,CUS1353,Train Ticket from New York to Dubai,4,294.39,Postage
+ORD0617,CUS4468,Flight Ticket from Sydney to Madrid,7,271.55,Postage
+ORD1674,CUS5363,Tube Ticket from Sydney to Los Angeles,5,288.41,Mobile
+ORD1670,CUS7805,Train Ticket from London to Madrid,7,176.06,Carrier Pigeon
+ORD3735,CUS4468,Train Ticket from New York to Dubai,7,61.44,Postage
+ORD3719,CUS3137,Coach Ticket from London to Hong Kong,9,50.99,Pick-up at Station
+ORD4706,CUS1257,Flight Ticket from Paris to Hong Kong,2,292.18,Postage
+ORD7964,CUS0926,Tube Ticket from Paris to Rome,10,16.06,Postage
+ORD8580,CUS1695,Train Ticket from Moscow to Hong Kong,10,17.5,Carrier Pigeon
+ORD6247,CUS1206,Ship Ticket from Tokyo to Madrid,2,346.1,Carrier Pigeon
+ORD7876,CUS2703,Flight Ticket from Paris to Singapore,9,312.99,Fax
+ORD0834,CUS3360,Coach Ticket from Paris to Dubai,10,261.7,Carrier Pigeon
+ORD8740,CUS2964,Ship Ticket from Paris to Rome,2,111.58,Postage
+ORD1927,CUS1597,Train Ticket from New York to Singapore,3,16.03,Carrier Pigeon
+ORD4784,CUS9921,Bus Ticket from Tokyo to Los Angeles,7,46.76,Fax
+ORD3281,CUS3568,Gondola Ticket from Sydney to Los Angeles,1,380.59,Fax

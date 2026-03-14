@@ -16,7 +16,11 @@ def fetchCustomer(id):
             <tr><td>First Name</td><td>{customer[1]}</td></tr>
             <tr><td>Last Name</td><td>{customer[2]}</td></tr>
             <tr><td>Email</td><td>{customer[3]}</td></tr>
-            <tr><td>Status</td><td>{customer[4]}</td></tr>
+            <tr><td>Date of Birth</td><td>{customer[4]}</td></tr>
+            <tr><td>Phone Number</td><td>{customer[5]}</td></tr>
+            <tr><td>Town</td><td>{customer[6]}</td></tr>
+            <tr><td>County</td><td>{customer[7]}</td></tr>
+            <tr><td>Status</td><td>{customer[8]}</td></tr>
             </table>
             </body>
             </html>
@@ -31,7 +35,8 @@ def fetchCustomer(id):
                     <table border="1">
                     <tr><td>Product</td><td>{order[2]}</td></tr>
                     <tr><td>Quantity</td><td>{order[3]}</td></tr>
-                    <tr><td>Price</td><td>{order[4]}</td></tr>
+                    <tr><td>Unit Price</td><td>{order[4]}</td></tr>
+                    <tr><td>Delivery Method</td><td>{order[5]}</td></tr>
                     </table>
                     """
 
@@ -49,18 +54,24 @@ def fetchCustomer(id):
                         "OrderID": order[0],
                         "Product": order[2],
                         "Quantity": order[3],
-                        "Price": order[4]
+                        "Unit Price": order[4],
+                        "Delivery Method": order[5]
                     })
 
             response = {
             "Customer Profile":{
                 "CustomerID": customer[0][0],
-                "FirstName": customer[0][1],
-                "LastName": customer[0][2],
+                "First Name": customer[0][1],
+                "Last Name": customer[0][2],
                 "Email": customer[0][3],
-                "Status": customer[0][4]
-                }
+                "DOB": customer[0][4],
+                "Phone Number": customer[0][5],
+                "Town": customer[0][6],
+                "County": customer[0][7],
+                "Status": customer[0][8]
             }
+            }
+                
 
             if orderlist:
                 response["Orders"] = {order["OrderID"]:{field: value for field, value in order.items() if field != 'OrderID'} for order in orderlist} # Use the OrderID as the key for the orders
