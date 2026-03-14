@@ -63,7 +63,7 @@ def fetchCustomer(id):
             }
 
             if orderlist:
-                response["Orders"] = {order["OrderID"]:{**order, "OrderID": None} for order in orderlist}
+                response["Orders"] = {order["OrderID"]:{field: value for field, value in order.items() if field != 'OrderID'} for order in orderlist} # Use the OrderID as the key for the orders
 
             return response
         else:
