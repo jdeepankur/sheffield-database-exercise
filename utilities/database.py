@@ -62,4 +62,4 @@ class Database:
     @tablecheck
     def getRow(table, column, value):
         cursor.execute(f"SELECT * FROM {table} WHERE {column} = '{value}'")
-        return cursor.fetchone()
+        return cursor.fetchall()
