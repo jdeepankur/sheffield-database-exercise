@@ -3,7 +3,6 @@ from utilities.database import Database
 
 tables = ["customers", "orders"]
 
-Database.reset()
 for name in tables:
     raw_data = f"data/{name}_data.csv"
 
