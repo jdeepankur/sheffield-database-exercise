@@ -69,3 +69,9 @@ class Database:
     def getRow(table, column, value):
         cursor.execute(f"SELECT * FROM {table} WHERE {column} = '{value}'")
         return cursor.fetchall()
+    
+    @staticmethod
+    @tablecheck
+    def getHeaders(table):
+        cursor.execute(f"SHOW COLUMNS FROM {table}")
+        return [column[0] for column in cursor.fetchall()]

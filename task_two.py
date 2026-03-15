@@ -51,24 +51,24 @@ def fetchCustomer(id):
             if (orders := Database.getRow("orders", "CustomerID", customer[0][0])) is not None:
                 for order in orders:
                     orderlist.append({
-                        "OrderID": order[0],
-                        "Product": order[2],
-                        "Quantity": order[3],
-                        "Unit Price": order[4],
-                        "Delivery Method": order[5]
+                        "order_id": order[0],
+                        "product": order[2],
+                        "quantity": order[3],
+                        "unit_price": order[4],
+                        "delivery_method": order[5]
                     })
 
             response = {
             "Customer Profile":{
-                "CustomerID": customer[0][0],
-                "First Name": customer[0][1],
-                "Last Name": customer[0][2],
-                "Email": customer[0][3],
-                "DOB": customer[0][4],
-                "Phone Number": customer[0][5],
-                "Town": customer[0][6],
-                "County": customer[0][7],
-                "Status": customer[0][8]
+                "customer_id": customer[0][0],
+                "first_name": customer[0][1],
+                "last_name": customer[0][2],
+                "email": customer[0][3],
+                "dob": customer[0][4],
+                "phone_number": customer[0][5],
+                "town": customer[0][6],
+                "county": customer[0][7],
+                "status": customer[0][8]
             }
             }
                 

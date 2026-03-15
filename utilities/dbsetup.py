@@ -40,8 +40,7 @@ def run():
         )
 
 def wait(mysqldb):
-    # Wait for mySQL to initialize
-    print("Waiting for MySQL to be ready...")
+    # Wait for mySQL to start accepting connections from scripts
     max_attempts = 30
     attempt = 0
     while attempt < max_attempts:
@@ -53,9 +52,9 @@ def wait(mysqldb):
                 port=int(env("DB_PORT"))
             )
             test_db.close()
-            print("MySQL is ready!")
             return
         except mysqldb.Error:
+            if attempt == 0: print("Waiting for MySQL to start...")
             attempt += 1
             time.sleep(2)
             print(f"Attempt {attempt}/{max_attempts}: MySQL not ready yet...")
