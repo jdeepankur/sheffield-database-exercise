@@ -1,11 +1,13 @@
 from task_one import Database
 import utilities.api as api
 
+
 @api.optionalParam("pretty", False, type=bool)
 def fetchCustomer(id):
-    if fetchCustomer.pretty:
-        customer = Database.getRow("customers", "UniqueID", id)[0]
+    data = Database.getRow("customers", "UniqueID", id)
+    customer = data[0] if data else None
 
+    if fetchCustomer.pretty:
         if customer:
             profile = f"""
             <html>
@@ -27,7 +29,9 @@ def fetchCustomer(id):
             """
 
             orderlist = ""
-            if (orders := Database.getRow("orders", "CustomerID", customer[0])) is not None:
+            if (
+                orders := Database.getRow("orders", "CustomerID", customer[0])
+            ) is not None:
                 orderlist += "<h2>Orders</h2>"
                 for order in orders:
                     orderlist += f"""
@@ -43,42 +47,53 @@ def fetchCustomer(id):
             return profile + orderlist
         else:
             return "<html><body><h2>Error: Customer not found</h2></body></html>"
-        
+
     else:
-        customer = Database.getRow("customers", "UniqueID", id)
         if customer:
             orderlist = []
-            if (orders := Database.getRow("orders", "CustomerID", customer[0][0])) is not None:
+            if (
+                orders := Database.getRow("orders", "CustomerID", customer[0])
+            ) is not None:
                 for order in orders:
-                    orderlist.append({
-                        "order_id": order[0],
-                        "product": order[2],
-                        "quantity": order[3],
-                        "unit_price": order[4],
-                        "delivery_method": order[5]
-                    })
+                    orderlist.append(
+                        {
+                            "order_id": order[0],
+                            "product": order[2],
+                            "quantity": order[3],
+                            "unit_price": order[4],
+                            "delivery_method": order[5],
+                        }
+                    )
 
             response = {
-            "Customer Profile":{
-                "customer_id": customer[0][0],
-                "first_name": customer[0][1],
-                "last_name": customer[0][2],
-                "email": customer[0][3],
-                "dob": customer[0][4],
-                "phone_number": customer[0][5],
-                "town": customer[0][6],
-                "county": customer[0][7],
-                "status": customer[0][8]
+                "Customer Profile": {
+                    "customer_id": customer[0],
+                    "first_name": customer[1],
+                    "last_name": customer[2],
+                    "email": customer[3],
+                    "dob": customer[4],
+                    "phone_number": customer[5],
+                    "town": customer[6],
+                    "county": customer[7],
+                    "status": customer[8],
+                }
             }
-            }
-                
 
             if orderlist:
-                response["Orders"] = {order["OrderID"]:{field: value for field, value in order.items() if field != 'OrderID'} for order in orderlist} # Use the OrderID as the key for the orders
+                print(orderlist[0])
+                response["Orders"] = {
+                    order["order_id"]: {
+                        field: value
+                        for field, value in order.items()
+                        if field != "order_id"
+                    }
+                    for order in orderlist
+                }  # Use the OrderID as the key for the orders
 
             return response
         else:
             return {"error": "Customer not found"}
+
 
 api.new_endpoint("/customer/<id>", fetchCustomer)
 api.start()

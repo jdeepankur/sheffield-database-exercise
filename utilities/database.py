@@ -3,6 +3,7 @@ from utilities.environment import env
 
 dbname = env("DB_NAME")
 
+
 # Wrapper method that guards against SQL injection
 def sql_guard(func):
     def wrapper(*args, **kwargs):
@@ -13,7 +14,9 @@ def sql_guard(func):
             if isinstance(value, str) and (";" in value or "--" in value):
                 raise ValueError("Potential SQL injection detected.")
         return func(*args, **kwargs)
+
     return wrapper
+
 
 # First we make sure that mySQL is running
 dbsetup.run()
@@ -21,9 +24,7 @@ dbsetup.wait(mysqldb)
 
 # Next a connection has to be established to the mySQL database
 db = mysqldb.connect(
-    host=env("DB_HOST"), 
-    user=env("DB_USER"), 
-    password=env("DB_PASSWORD")
+    host=env("DB_HOST"), user=env("DB_USER"), password=env("DB_PASSWORD")
 )
 cursor = db.cursor(buffered=True)
 
@@ -31,12 +32,15 @@ cursor = db.cursor(buffered=True)
 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {dbname}")
 cursor.execute(f"USE {dbname}")
 
+
 def tablecheck(func):
     def wrapper(table, *args, **kwargs):
         if not Database.isTable(table):
             return None
         return func(table, *args, **kwargs)
+
     return wrapper
+
 
 class Database:
     @staticmethod
@@ -87,7 +91,7 @@ class Database:
     def getRow(table, column, value):
         cursor.execute(f"SELECT * FROM {table} WHERE {column} = '{value}'")
         return cursor.fetchall()
-    
+
     @staticmethod
     @tablecheck
     @sql_guard
