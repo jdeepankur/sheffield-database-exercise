@@ -1,6 +1,5 @@
 from utilities.database import Database
 from operator import add, mul
-import rich
 
 def getOrdersByCustomerID(customer_id):
     orders = Database.getRow("orders", "CustomerID", customer_id)
@@ -29,8 +28,8 @@ order_headers = Database.getHeaders("orders")
 number_fields = ["UnitPrice", "Quantity"]
 
 for customer, orders in customer_orders.items():
-    for i, order in enumerate(orders):
+    for i in range(len(orders)):
         for field in number_fields:
-            orders[i] = order[:order_headers.index(field)] + (float(order[order_headers.index(field)]),) + order[order_headers.index(field)+1:]
+            orders[i] = orders[i][:order_headers.index(field)] + (float(orders[i][order_headers.index(field)]),) + orders[i][order_headers.index(field)+1:]
 
     addNewField(orders, order_headers, "Total Price", number_fields, mul)
