@@ -32,9 +32,7 @@ Before proceeding, ensure the following software is installed and available on y
 pip install -r requirements.txt
 ```
 
-All required packages are pinned in `requirements.txt`. Key runtime dependencies include `mysql-connector-python`, `Flask`, `python-dotenv`, and `rich`.
-
-If you encounter issues, a possible reason is that your mySQL installation is outdated and cached. In that case, you could run the following:
+All required packages are pinned in `requirements.txt`. If you encounter issues, a possible reason is that your mySQL installation is outdated and cached. In that case, you could run the following:
 ```bash
 # From the root of the repository
 python3 -m pip install mysql-connector-python==9.6.0 --force-reinstall
