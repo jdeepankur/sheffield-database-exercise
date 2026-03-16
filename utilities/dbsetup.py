@@ -66,7 +66,7 @@ def run():
 
 def wait(mysqldb):
     # Wait for mySQL to start accepting connections from scripts
-    max_attempts = 30
+    max_attempts = 80
 
     with Progress(
         SpinnerColumn(),
