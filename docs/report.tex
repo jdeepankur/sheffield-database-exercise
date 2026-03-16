@@ -231,4 +231,323 @@ python utilities/data_generator.py
 
 This overwrites \texttt{data/customers\_data.csv} and
 \texttt{data/orders\_data.csv} with 50 new synthetic records each.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Design \& Implementation}
+
+\subsection{Database: MySQL via Docker}
+
+MySQL was chosen as the relational database for several practical reasons:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Structured, relational data} --- the dataset consists of two
+          clearly related entities (customers and orders) with a foreign-key
+          relationship on \texttt{CustomerID}. A relational database is a
+          natural and well-supported fit.
+    \item \textbf{Ubiquity and tooling} --- MySQL is one of the most widely
+          deployed databases; it has mature Python drivers, excellent
+          documentation, and broad familiarity.
+    \item \textbf{Docker for portability} --- wrapping MySQL in a Docker
+          container removes the need for reviewers to install and configure a
+          local MySQL server. The setup script in \texttt{utilities/dbsetup.py}
+          handles container lifecycle automatically (start, restart, create),
+          making the application self-contained with zero manual DB
+          configuration.
+    \item \textbf{Schema-free table creation} --- because the CSV column
+          names are used directly to create the table schema at insertion time,
+          the application can adapt to different CSV structures without
+          hard-coded \texttt{CREATE TABLE} statements. All columns use
+          \texttt{VARCHAR(255)}, which is flexible enough for the data at hand.
+\end{itemize}
+
+A lightweight alternative like SQLite would have eliminated the Docker
+dependency entirely, but MySQL better reflects a production-like setup and
+demonstrates networking, container orchestration, and real TCP connectivity.
+
+\subsection{Web Framework: Flask}
+
+Flask was selected for the API layer because:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Minimal overhead} --- the API surface is a single endpoint.
+          Flask imposes no boilerplate beyond what is needed, keeping the code
+          concise.
+    \item \textbf{Flexibility} --- the custom \texttt{optionalParam} decorator
+          in \texttt{utilities/api.py} integrates cleanly with Flask's request
+          context, allowing query-string parameters to be declared and type-
+          validated inline with the view function.
+    \item \textbf{Dual-format responses} --- the same endpoint serves both JSON
+          (for machine consumers) and HTML (for browser viewing) via the
+          \texttt{?pretty=true} query parameter. Flask's minimal structure made
+          it straightforward to branch on this parameter and return either
+          \texttt{dict} (auto-serialised to JSON by Flask) or a raw HTML string.
+\end{itemize}
+
+\subsection{Key Libraries}
+
+\begin{center}
+\begin{tabular}{>{\ttfamily}l p{10cm}}
+\toprule
+\textbf{Library} & \textbf{Reason for inclusion} \\
+\midrule
+mysql-connector-python & Official MySQL driver for Python; provides the
+                          \texttt{cursor} interface used throughout
+                          \texttt{database.py}. \\[0.4em]
+python-dotenv / dotenv & Reads the \texttt{.env} file; cleanly separates
+                          secrets and config from source code, following
+                          twelve-factor app principles. \\[0.4em]
+rich                   & Renders the animated spinner and progress bar while
+                          waiting for MySQL to become available, giving clear
+                          visual feedback during startup. \\[0.4em]
+flask-marshmallow /    & Included in \texttt{requirements.txt} for potential
+Flask-SQLAlchemy         structured serialisation and ORM use; not yet
+                          actively used in the current codebase. \\[0.4em]
+names / rstr           & Used by \texttt{data\_generator.py} to produce
+                          realistic synthetic customer records with valid-
+                          looking names, emails, and UK phone numbers. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Notable Design Decisions}
+
+\textbf{SQL injection guard.} Rather than switching to parameterised queries
+at the driver level (the conventional approach), a decorator \texttt{sql\_guard}
+was implemented to check all string arguments for injection tokens
+(\texttt{;} and \texttt{--}) before any SQL is executed. This is a defence-in-
+depth measure layered on top of the existing query structure.
+
+\textbf{Table and schema auto-creation.} The \texttt{Database.ensureTable}
+method creates the table on the first insert, deriving column names from the
+CSV headers. This avoids any migration tooling for a project of this scale and
+keeps setup to a single script run.
+
+\textbf{Dual-format API.} The decision to return both JSON and HTML from the
+same endpoint --- controlled by \texttt{?pretty=true} --- was made to support
+both programmatic API consumers and quick human inspection in a browser without
+requiring a separate frontend server.
+
+\textbf{Functional column transformation in \texttt{task\_three.py}.} The
+\texttt{addNewField} function is written in a generic, functional style: it
+accepts a list of field names and an arbitrary \texttt{operation} callable,
+then appends the result as a new column. This means the same function handles
+both the string concatenation of \texttt{Full Name} and the numeric
+multiplication of \texttt{Total Price}, keeping the export logic DRY.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Application Flow}
+
+This section traces data through all three tasks and the supporting utilities.
+
+\subsection{Overview}
+
+\begin{center}
+\begin{tabular}{ccccc}
+\textbf{CSV files} & $\rightarrow$ & \textbf{task\_one.py} & $\rightarrow$ & \textbf{MySQL (Docker)} \\[0.4em]
+\textbf{MySQL} & $\rightarrow$ & \textbf{task\_two.py} & $\rightarrow$ & \textbf{HTTP endpoint} \\[0.4em]
+\textbf{MySQL} & $\rightarrow$ & \textbf{task\_three.py} & $\rightarrow$ & \textbf{Output CSVs} \\
+\end{tabular}
+\end{center}
+
+\subsection{Task 1 --- Data Ingestion}
+
+\begin{enumerate}[leftmargin=2em]
+    \item \texttt{task\_one.py} imports \texttt{Database} from
+          \texttt{utilities/database.py}. This import triggers the module-level
+          setup code in \texttt{database.py}: \texttt{dbsetup.run()} is called,
+          which inspects running Docker containers and either creates, restarts,
+          or does nothing with the \texttt{mySQL-shop} container.
+          \texttt{dbsetup.wait()} then polls MySQL on the configured port until
+          it accepts connections (up to 30 attempts, 2 seconds apart).
+
+    \item A MySQL connection is established and a buffered cursor created.
+          The \texttt{shopdb} database is created if absent, then selected.
+
+    \item For each CSV file (\texttt{customers\_data.csv},
+          \texttt{orders\_data.csv}), the script:
+          \begin{itemize}
+              \item Opens the file and reads the header row, stripping spaces
+                    from column names (e.g. \texttt{First Name} becomes
+                    \texttt{FirstName}).
+              \item For each subsequent row, calls
+                    \texttt{Database.getRow(table, primaryKey, id)} to check
+                    whether a record with that ID already exists.
+              \item If no existing record is found, calls
+                    \texttt{Database.insert(table, columns, row)}, which first
+                    ensures the table exists (creating it with all-\texttt{VARCHAR(255)}
+                    columns if not), then executes the \texttt{INSERT} statement.
+          \end{itemize}
+
+    \item Every insert is immediately committed. The idempotency check
+          (\texttt{getRow} before \texttt{insert}) means re-running
+          \texttt{task\_one.py} is safe and will not duplicate rows.
+\end{enumerate}
+
+\subsection{Task 2 --- REST API}
+
+\begin{enumerate}[leftmargin=2em]
+    \item \texttt{task\_two.py} imports \texttt{Database} (triggering the same
+          Docker/MySQL startup described above) and registers a single Flask
+          route: \texttt{GET /customer/<id>}.
+
+    \item The view function \texttt{fetchCustomer} is decorated with
+          \texttt{@api.optionalParam("pretty", False, type=bool)}.
+          At request time the decorator reads \texttt{?pretty} from the query
+          string, coerces it to \texttt{bool}, falls back to \texttt{False} if
+          the coercion fails, and sets it as an attribute on the wrapper
+          function so the body can access it as \texttt{fetchCustomer.pretty}.
+
+    \item \textbf{JSON path} (\texttt{pretty=False}, the default):
+          \begin{itemize}
+              \item \texttt{Database.getRow("customers", "UniqueID", id)} is
+                    called. If no record is returned, a \texttt{\{"error": "Customer not found"\}}
+                    dict is returned, which Flask serialises to JSON with a
+                    \texttt{200} status.
+              \item Otherwise, all orders for that customer are fetched from
+                    \texttt{Database.getRow("orders", "CustomerID", customer[0])}.
+              \item A structured response dict is assembled with a
+                    \texttt{"Customer Profile"} key and, if orders exist, an
+                    \texttt{"Orders"} key whose sub-keys are order IDs. Flask
+                    auto-serialises this to JSON.
+          \end{itemize}
+
+    \item \textbf{HTML path} (\texttt{pretty=true}):
+          \begin{itemize}
+              \item The customer tuple is passed through
+                    \texttt{utilities/html.py}'s \texttt{htmlClean} function,
+                    which applies \texttt{html.escape} to every field, guarding
+                    against stored XSS before the values are interpolated into
+                    an HTML template string.
+              \item Customer details are rendered as an HTML table. Orders, if
+                    present, are appended as additional tables below.
+              \item The raw HTML string is returned directly; Flask sends it
+                    with a \texttt{text/html} content type.
+          \end{itemize}
+
+    \item \texttt{api.start()} calls \texttt{app.run(port=env("API\_PORT"))},
+          starting the development server.
+\end{enumerate}
+
+\subsection{Task 3 --- Export Script}
+
+\begin{enumerate}[leftmargin=2em]
+    \item All column names for the \texttt{customers} table are retrieved via
+          \texttt{Database.getHeaders("customers")} (which issues
+          \texttt{SHOW COLUMNS}).
+
+    \item Active customers are fetched with
+          \texttt{Database.getRow("customers", "Status", "Active")}, returning
+          a list of tuples.
+
+    \item \texttt{addNewField} is called to append a \texttt{Full Name} column:
+          it iterates over every customer tuple, calls \texttt{wordjoin(FirstName, Surname)}
+          (a simple \texttt{" ".join(*args)}), and appends the result to the
+          tuple. The \texttt{customer\_headers} list is also extended in-place.
+
+    \item For each active customer a dictionary entry is created mapping their
+          \texttt{UniqueID} to their orders (fetched by
+          \texttt{CustomerID}).
+
+    \item Order numeric fields (\texttt{UnitPrice}, \texttt{Quantity}) are
+          converted from strings to Python numbers using \texttt{eval}. A
+          \texttt{Total Price} column is then appended by
+          \texttt{addNewField} using \texttt{operator.mul} and a
+          \texttt{".2f"} format string.
+
+    \item The output directory (\texttt{OUTPUT\_DIR} from \texttt{.env}) is
+          created if it does not exist. Both CSV files are written by
+          joining headers and row values with commas.
+\end{enumerate}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Future Improvements}
+
+Given more time, the following changes and additions would be prioritised.
+
+\subsection{Parameterised SQL Queries}
+
+The current \texttt{sql\_guard} decorator checks for \texttt{;} and \texttt{--}
+tokens as a defence against injection, but this approach is inherently
+incomplete --- there are injection payloads that do not use these tokens. The
+correct fix is to replace all f-string SQL construction with parameterised
+queries using the \texttt{\%s} placeholder syntax supported by
+\texttt{mysql-connector-python}:
+
+\begin{lstlisting}[language=python, caption={Parameterised query example}]
+cursor.execute(
+    "SELECT * FROM %s WHERE %s = %s",
+    (table, column, value)
+)
+\end{lstlisting}
+
+This delegates escaping entirely to the driver and eliminates the class of
+vulnerability at source.
+
+\subsection{Replace \texttt{eval} with Explicit Type Conversion}
+
+In \texttt{task\_three.py}, string values from the database are converted to
+numbers using \texttt{eval}. While the data originates from a controlled CSV
+source, \texttt{eval} is an unnecessary security risk. Replacing it with
+\texttt{float()} or \texttt{int()} would be both safer and more explicit.
+
+\subsection{A Production WSGI Server}
+
+Flask's built-in development server is single-threaded and not suitable for
+production or concurrent load testing. The application would benefit from being
+served via \textbf{Gunicorn} or \textbf{uWSGI}:
+
+\begin{lstlisting}[language=bash, caption={Running with Gunicorn}]
+gunicorn -w 4 "task_two:app"
+\end{lstlisting}
+
+\subsection{Proper HTTP Status Codes and Error Handling}
+
+The \texttt{"Customer not found"} response currently returns HTTP \texttt{200}.
+A \texttt{404 Not Found} would be more semantically correct and easier to
+handle by API consumers. Similarly, unhandled exceptions (e.g. database
+connection failures mid-request) should be caught and returned as
+\texttt{500 Internal Server Error} rather than an unhandled Python traceback.
+
+\subsection{Database Connection Pooling}
+
+The application opens a single persistent \texttt{mysql.connector} connection
+at module import time. Under concurrent API load this will fail or produce race
+conditions. Switching to \texttt{mysql.connector.pooling.MySQLConnectionPool}
+or using SQLAlchemy's connection pool (already in \texttt{requirements.txt} via
+\texttt{Flask-SQLAlchemy}) would resolve this.
+
+\subsection{A Proper ORM Layer}
+
+\texttt{Flask-SQLAlchemy} and \texttt{flask-marshmallow} are already listed as
+dependencies. Migrating \texttt{utilities/database.py} to use SQLAlchemy models
+would bring typed schemas, automatic migration support (via Alembic), and
+eliminate the need for the hand-rolled \texttt{Database} wrapper class entirely.
+
+\subsection{Tests}
+
+There are currently no automated tests. A minimal test suite using
+\texttt{pytest} and Flask's built-in test client would cover:
+
+\begin{itemize}[leftmargin=2em]
+    \item \texttt{GET /customer/<id>} returns correct JSON structure.
+    \item \texttt{GET /customer/<id>?pretty=true} returns valid HTML.
+    \item \texttt{GET /customer/INVALID} returns a \texttt{404}.
+    \item \texttt{task\_three.py} output CSVs match expected headers and row counts.
+\end{itemize}
+
+\subsection{Structured Logging}
+
+Print statements are used for status output. Replacing these with Python's
+\texttt{logging} module would allow log levels to be controlled via environment
+variables and log output to be directed to files or a log aggregator in
+production.
+
+\subsection{Docker Compose}
+
+Currently the application depends on Docker being installed but manages the
+container itself through \texttt{subprocess} calls. A
+\texttt{docker-compose.yml} would replace this ad-hoc orchestration with a
+declarative definition, making the full stack (MySQL + Python app) startable
+with a single \texttt{docker compose up} command and easier to integrate into
+CI pipelines.
 \end{document}
