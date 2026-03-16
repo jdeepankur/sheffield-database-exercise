@@ -39,3 +39,196 @@
     framerule=0.4pt,
     rulecolor=\color{gray!40}
 }
+
+\lstset{style=codestyle}
+
+% Section formatting
+\titleformat{\section}{\large\bfseries\color{accentblue}}{}{0em}{}[\titlerule]
+\titleformat{\subsection}{\normalsize\bfseries}{}{0em}{}
+
+% Header/footer
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{\textcolor{gray}{\small Sheffield Junior Programmer Exercise}}
+\lhead{\textcolor{gray}{\small README File}}
+\cfoot{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=accentblue,
+    urlcolor=codeblue
+}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{3cm}
+    {\huge\bfseries\color{accentblue} Sheffield Junior\\[0.4em] Programmer Exercise\\[0.4em]}
+    {\large README File\\[2.5cm]}
+    \rule{\linewidth}{0.5pt}\\[0.6em]
+    {\large\itshape A Python application demonstrating data ingestion,\\
+    a REST API, and a CSV export pipeline backed by MySQL}\\[0.6em]
+    \rule{\linewidth}{0.5pt}
+    \vfill
+    {\normalsize March 2026}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Running the Application}
+
+This section provides complete, step-by-step instructions for setting up and
+running every component of the application from a clean checkout.
+
+\subsection{Prerequisites}
+
+Before proceeding, ensure the following software is installed and available on
+your \texttt{PATH}:
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{Python 3.11+} --- the application uses f-string features and
+          walrus operators that require Python 3.8 at minimum; 3.11 is
+          recommended.
+    \item \textbf{Docker} --- the database setup script automatically pulls and
+          starts a \texttt{mysql:latest} container. Docker must be running
+          before any Python script is executed.
+    \item \textbf{pip} --- used to install Python dependencies.
+\end{itemize}
+
+\subsection{Clone the Repository and Install Dependencies}
+
+\begin{lstlisting}[language=bash, caption={Install Python dependencies}]
+# From the root of the repository
+pip install -r requirements.txt
+\end{lstlisting}
+
+All required packages are pinned in \texttt{requirements.txt}. Key runtime
+dependencies include \texttt{mysql-connector-python}, \texttt{Flask},
+\texttt{python-dotenv}, and \texttt{rich}.
+
+\subsection{Configure the Environment File}
+
+The application reads all configuration from a \texttt{.env} file in the
+project root. An example is provided:
+
+\begin{lstlisting}[language=bash, caption={Create your \texttt{.env} file}]
+cp .env.example .env
+\end{lstlisting}
+
+The default values work out of the box if you are running Docker locally.
+Edit \texttt{.env} only if you need a different port or database password:
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Variable} & \textbf{Default} \\
+\midrule
+\texttt{DB\_HOST}     & \texttt{localhost} \\
+\texttt{DB\_NAME}     & \texttt{shopdb}    \\
+\texttt{DB\_USER}     & \texttt{root}      \\
+\texttt{DB\_PASSWORD} & \texttt{p@ssw0rd}  \\
+\texttt{DB\_PORT}     & \texttt{3306}      \\
+\texttt{API\_PORT}    & \texttt{8000}      \\
+\texttt{OUTPUT\_DIR}  & \texttt{output}    \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Step 1 --- Set Up the Database and Import Data}
+
+Run \texttt{task\_one.py} to seed the database. This script will:
+
+\begin{enumerate}[leftmargin=2em]
+    \item Invoke \texttt{utilities/dbsetup.py}, which checks whether a Docker
+          container named \texttt{mySQL-shop} is already running. If not, it
+          either restarts an existing stopped container or creates a fresh one
+          with \texttt{docker run}.
+    \item Wait (with a live progress bar) until MySQL is accepting connections.
+    \item Create the \texttt{shopdb} database if it does not exist.
+    \item Read \texttt{data/customers\_data.csv} and
+          \texttt{data/orders\_data.csv}, creating the \texttt{customers} and
+          \texttt{orders} tables automatically, then inserting every row that
+          does not already exist.
+\end{enumerate}
+
+\begin{lstlisting}[language=bash, caption={Populate the database}]
+python task_one.py
+\end{lstlisting}
+
+Expected output:
+\begin{lstlisting}[caption={Successful run output}]
+Task 1 has run successfully.
+The database has been populated with data from the CSV files.
+\end{lstlisting}
+
+\subsection{Step 2 --- Start the REST API}
+
+\begin{lstlisting}[language=bash, caption={Start the Flask API server}]
+python task_two.py
+\end{lstlisting}
+
+The Flask development server starts on the port defined by \texttt{API\_PORT}
+(default \texttt{8000}). Keep this terminal open while using the API.
+
+\textbf{Available endpoint:}
+
+\begin{center}
+\begin{tabular}{>{\ttfamily}l l}
+\toprule
+\textbf{URL} & \textbf{Description} \\
+\midrule
+GET /customer/\{id\}            & Returns customer profile and orders as JSON \\
+GET /customer/\{id\}?pretty=true & Returns the same data formatted as HTML \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Example requests:
+
+\begin{lstlisting}[language=bash, caption={Example API calls}]
+# JSON response
+curl http://localhost:8000/customer/CUS2279
+
+# HTML response
+curl http://localhost:8000/customer/CUS2279?pretty=true
+
+# Open in a browser for the HTML view
+open http://localhost:8000/customer/CUS2279?pretty=true
+\end{lstlisting}
+
+\subsection{Step 3 --- Run the Export Script}
+
+\begin{lstlisting}[language=bash, caption={Generate CSV exports}]
+python task_three.py
+\end{lstlisting}
+
+This produces two files in the directory specified by \texttt{OUTPUT\_DIR}
+(default \texttt{output/}):
+
+\begin{itemize}[leftmargin=2em]
+    \item \texttt{output/active\_customers.csv} --- all customers whose
+          \texttt{Status} is \texttt{Active}, with a computed \texttt{Full Name}
+          column appended.
+    \item \texttt{output/active\_customer\_orders.csv} --- all orders belonging
+          to those active customers, with a computed \texttt{Total Price} column
+          appended.
+\end{itemize}
+
+Reference outputs are available in \texttt{output.example/} for comparison.
+
+\subsection{Optional --- Regenerate Sample Data}
+
+If you wish to produce a fresh randomised dataset before running the pipeline:
+
+\begin{lstlisting}[language=bash, caption={Regenerate sample CSV data}]
+python utilities/data_generator.py
+\end{lstlisting}
+
+This overwrites \texttt{data/customers\_data.csv} and
+\texttt{data/orders\_data.csv} with 50 new synthetic records each.
+\end{document}
