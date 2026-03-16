@@ -242,9 +242,9 @@ This delegates escaping entirely to the driver and eliminates the class of vulne
 
 In `task_three.py`, string values from the database are converted to numbers using `eval`. While the data originates from a controlled CSV source, `eval` is an unnecessary security risk. Replacing it with `float()` or `int()` would be both safer and more explicit.
 
-### 4.3 A Production WSGI Server
+### 4.3 Production WSGI Server
 
-Flask's built-in development server is single-threaded and not suitable for production or concurrent load testing. The application would benefit from being served via more production-friendly alternatives such as **Gunicorn** or **uWSGI**:
+Flask's built-in development server is single-threaded and not suitable for production or concurrent load testing. The application would benefit from being backed by a WSGI server such as **Gunicorn** or **Waitress**:
 
 
 ### 4.4 Proper HTTP Status Codes and Error Handling
