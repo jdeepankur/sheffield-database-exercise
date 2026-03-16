@@ -1,0 +1,2781 @@
+Codebase Analysis for: ./
+
+Directory Structure:
+└── 
+    ├── task_one.py
+    ├── task_three.py
+    ├── output.example
+    │   ├── active_customers.csv
+    │   └── active_customer_orders.csv
+    ├── Pipfile.lock
+    ├── requirements.txt
+    ├── task_two.py
+    ├── .env.example
+    ├── data
+    │   ├── customers_data.csv
+    │   └── orders_data.csv
+    ├── utilities
+    │   ├── api.py
+    │   ├── database.py
+    │   ├── dbsetup.py
+    │   ├── environment.py
+    │   └── data_generator.py
+    ├── _codebase_digest.txt
+    ├── Pipfile
+    ├── output
+    │   ├── active_customers.csv
+    │   └── active_customer_orders.csv
+    ├── .env
+    └── LICENSE
+
+Summary:
+Total files analyzed: 21
+Total directories analyzed: 4
+Estimated output size: 117.00 KB
+Actual analyzed size: 113.97 KB
+Total tokens: 32577
+Actual text content size: 113.62 KB
+
+File Contents:
+
+==================================================
+File: task_one.py
+==================================================
+import csv
+from utilities.database import Database
+
+tables = ["customers", "orders"]
+
+for name in tables:
+    raw_data = f"data/{name}_data.csv"
+
+    with open(raw_data, "r") as f:
+        rows = csv.reader(f)
+        columns = [column.replace(" ", "") for column in next(rows)]
+
+        for row in rows:
+            if not Database.getRow(name, columns[0], row[0]):
+                Database.insert(name, columns, row)
+
+if __name__ == "__main__":
+    print("Task 1 has run successfully.")
+    print("The database has been populated with data from the CSV files.")
+
+
+==================================================
+File: task_three.py
+==================================================
+from utilities.database import Database
+from operator import mul
+from utilities.environment import env
+import os
+
+
+def wordjoin(*args):
+    return " ".join(args)
+
+
+def getOrdersByCustomerID(customer_id):
+    orders = Database.getRow("orders", "CustomerID", customer_id)
+    return orders
+
+
+def fetchCustomersByField(field, value):
+    customers = Database.getRow("customers", field, value)
+    return customers
+
+
+def fetchCustomersByStatus(status):
+    customers = fetchCustomersByField("Status", status)
+    return customers
+
+
+def addNewField(
+    customers, headers, new_field_name, fields_to_combine, operation, format=None
+):
+    if new_field_name not in headers:
+        headers.append(new_field_name)
+    for i, customer in enumerate(customers):
+        new_field_value = operation(
+            *[customer[headers.index(field)] for field in fields_to_combine]
+        )
+        if format:
+            new_field_value = f"{new_field_value:{format}}"
+        customers[i] = customer + (new_field_value,)
+
+
+customer_headers = Database.getHeaders("customers")
+active_customers = fetchCustomersByStatus("Active")
+addNewField(
+    active_customers, customer_headers, "Full Name", ["FirstName", "Surname"], wordjoin
+)
+
+customer_orders = {
+    customer[0]: getOrdersByCustomerID(customer[0]) for customer in active_customers
+}
+order_headers = Database.getHeaders("orders")
+number_fields = ["UnitPrice", "Quantity"]
+
+for customer, orders in customer_orders.items():
+    for i in range(len(orders)):
+        for field in number_fields:
+            orders[i] = (
+                orders[i][: order_headers.index(field)]
+                + (eval(orders[i][order_headers.index(field)]),)
+                + orders[i][order_headers.index(field) + 1 :]
+            )
+
+    addNewField(orders, order_headers, "Total Price", number_fields, mul, format=".2f")
+
+if not os.path.exists(env("OUTPUT_DIR")):
+    os.makedirs(env("OUTPUT_DIR"))
+
+with open(env("OUTPUT_DIR") + "/active_customers.csv", "w") as f:
+    f.write(",".join(customer_headers) + "\n")
+    for customer in active_customers:
+        f.write(",".join(map(str, customer)) + "\n")
+
+with open(env("OUTPUT_DIR") + "/active_customer_orders.csv", "w") as f:
+    f.write(",".join(order_headers) + "\n")
+    for orders in customer_orders.values():
+        for order in orders:
+            f.write(",".join(map(str, order)) + "\n")
+
+
+==================================================
+File: output.example/active_customers.csv
+==================================================
+UniqueID,FirstName,Surname,Email,DOB,Phone,Town,County,Status,Full Name
+CUS2678,Kathleen,Palka,katHLeeN.PALKa647@outlook.co.uk,+44 4240 877 603,9/11/1982,Exeter,East Riding of Yorkshire,active,Kathleen Palka
+CUS1161,David,Collazo,daViD.COLlAZO291@hotmail.co.uk,+44 0869 840 455,3/7/1935,Chester,Merseyside,active,David Collazo
+CUS0707,Jessica,Brooksher,JesSIca.BRoOKsHER808@outlook.co.uk,+44 3228 786 308,20/11/1944,Derby,Cumbria,active,Jessica Brooksher
+CUS4622,Maria,Foster,maRIA.FOsTeR562@yahoo.gov,+44 1850 056 334,14/2/1902,Reading,Angus,active,Maria Foster
+CUS1197,Steven,Bedward,sTEVEn.beDWARD400@yandex.net,+44 1737 316 923,20/12/1936,Sheffield,East Dunbartonshire,active,Steven Bedward
+CUS4421,Roy,Scudder,rOY.sCuDdeR615@gmail.co.uk,+44 7355 943 548,8/2/1990,Exeter,Herefordshire,active,Roy Scudder
+CUS4614,Jose,Brouillet,JosE.BrOuiLlet304@gmail.co.uk,+44 4319 683 531,25/4/1938,Nottingham,Tayside,active,Jose Brouillet
+CUS3117,Rufus,Hopper,RUfus.hoPpEr319@outlook.co.uk,+44 2242 490 827,28/9/1923,Sheffield,East Lothian,active,Rufus Hopper
+CUS6191,Donna,Bowman,dONNa.bOwMaN158@hotmail.com,+44 3952 712 921,8/4/1938,Sheffield,Greater Manchester,active,Donna Bowman
+CUS6841,David,Haddad,davId.HaDdad576@yahoo.org,+44 7295 975 572,21/5/1983,Brighton,Cambridgeshire,active,David Haddad
+CUS8670,Edith,Nelson,edItH.nelson327@hotmail.gov,+44 0236 500 945,3/2/1924,Newcastle upon Tyne,Norfolk,active,Edith Nelson
+CUS1158,Russell,Florio,RUSsELl.fLORio621@yahoo.net,+44 1387 254 435,5/5/1920,Poole,Staffordshire,active,Russell Florio
+CUS2229,David,Moran,daVid.MORAn275@gmail.org,+44 5166 441 650,25/4/1986,Norwich,Cambridgeshire,active,David Moran
+CUS7385,Dominique,Alston,dOMIniqUE.alsTON220@yandex.com,+44 7067 986 689,21/9/1929,Taunton,North Yorkshire,active,Dominique Alston
+CUS5897,Robert,Schenk,RoBErt.SchENK357@yahoo.org,+44 1042 442 367,24/11/1960,Durham,Leicestershire,active,Robert Schenk
+CUS0626,Elizabeth,Dion,ELiZabeTh.dIon767@hotmail.net,+44 1967 422 592,14/5/1984,Carlisle,East Ayrshire,active,Elizabeth Dion
+CUS8037,Brenda,Looper,breNDa.LooPEr355@gmail.com,+44 6223 474 884,27/8/1989,Norwich,Lincolnshire,active,Brenda Looper
+CUS3675,Diane,Kennedy,DIAnE.kEnnEDY553@yahoo.gov,+44 3741 936 028,4/4/1904,Dumfries,City of London,active,Diane Kennedy
+CUS0769,David,Graham,dAvId.GrAhAm403@yahoo.org,+44 9544 506 127,2/9/1932,Durham,Clackmannanshire,active,David Graham
+
+
+==================================================
+File: output.example/active_customer_orders.csv
+==================================================
+UniqueID,CustomerID,ProductName,Quantity,UnitPrice,DeliveryMethod,Total Price
+ORD4940,CUS2678,Ship Ticket from Sydney to Madrid,8.0,243.92,Postage,1951.36
+ORD3633,CUS0707,Train Ticket from Moscow to Hong Kong,4.0,176.06,Carrier Pigeon,704.24
+ORD2417,CUS0707,Flight Ticket from Berlin to Madrid,10.0,271.27,Pick-up at Station,2712.7
+ORD6528,CUS0707,Ship Ticket from Paris to Dubai,3.0,323.45,Mobile,970.3499999999999
+ORD4733,CUS0707,Gondola Ticket from Moscow to Singapore,9.0,130.25,Mobile,1172.25
+ORD1787,CUS1197,Bus Ticket from Sydney to Rome,6.0,196.75,Pick-up at Station,1180.5
+ORD9005,CUS4421,Bus Ticket from London to Dubai,4.0,218.9,Carrier Pigeon,875.6
+ORD4139,CUS4614,Gondola Ticket from Tokyo to Rome,1.0,129.86,Postage,129.86
+ORD5200,CUS4614,Train Ticket from Paris to Los Angeles,10.0,113.97,Carrier Pigeon,1139.7
+ORD5801,CUS3117,Gondola Ticket from Moscow to Madrid,2.0,105.57,Mobile,211.14
+ORD3543,CUS3117,Gondola Ticket from London to Rome,6.0,291.09,Postage,1746.54
+ORD5274,CUS6191,Flight Ticket from Berlin to Madrid,6.0,97.47,Postage,584.8199999999999
+ORD3237,CUS6841,Taxi Ticket from Moscow to Los Angeles,8.0,41.28,Fax,330.24
+ORD1190,CUS7385,Taxi Ticket from Moscow to Singapore,8.0,81.16,Fax,649.28
+ORD8214,CUS7385,Gondola Ticket from Tokyo to Los Angeles,3.0,84.44,Carrier Pigeon,253.32
+ORD8243,CUS7385,Taxi Ticket from Paris to Rome,3.0,98.93,Pick-up at Station,296.79
+ORD9485,CUS5897,Gondola Ticket from Sydney to Los Angeles,6.0,22.45,Pick-up at Station,134.7
+ORD9482,CUS8037,Train Ticket from Berlin to Hong Kong,2.0,210.04,Fax,420.08
+
+
+==================================================
+File: Pipfile.lock
+==================================================
+{
+    "_meta": {
+        "hash": {
+            "sha256": "1bd8687f82879ffac2396ebd7c15d6a70a91869d7d29cddd2d8fdca755fded0f"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "3.12"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "astroid": {
+            "hashes": [
+                "sha256:52f39653876c7dec3e3afd4c2696920e05c83832b9737afc21928f2d2eb7a753",
+                "sha256:986fed8bcf79fb82c78b18a53352a0b287a73817d6dbcfba3162da36667c49a0"
+            ],
+            "markers": "python_full_version >= '3.10.0'",
+            "version": "==4.0.4"
+        },
+        "dill": {
+            "hashes": [
+                "sha256:1e1ce33e978ae97fcfcff5638477032b801c46c7c65cf717f95fbc2248f79a9d",
+                "sha256:423092df4182177d4d8ba8290c8a5b640c66ab35ec7da59ccfa00f6fa3eea5fa"
+            ],
+            "markers": "python_version >= '3.9'",
+            "version": "==0.4.1"
+        },
+        "isort": {
+            "hashes": [
+                "sha256:171ac4ff559cdc060bcfff550bc8404a486fee0caab245679c2abe7cb253c78d",
+                "sha256:28b89bc70f751b559aeca209e6120393d43fbe2490de0559662be7a9787e3d75"
+            ],
+            "markers": "python_full_version >= '3.10.0'",
+            "version": "==8.0.1"
+        },
+        "mccabe": {
+            "hashes": [
+                "sha256:348e0240c33b60bbdf4e523192ef919f28cb2c3d7d5c7794f74009290f236325",
+                "sha256:6c2d30ab6be0e4a46919781807b4f0d834ebdd6c6e3dca0bda5a15f863427b6e"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==0.7.0"
+        },
+        "names": {
+            "hashes": [
+                "sha256:726e46254f2ed03f1ffb5d941dae3bc67c35123941c29becd02d48d0caa2a671"
+            ],
+            "index": "pypi",
+            "version": "==0.3.0"
+        },
+        "platformdirs": {
+            "hashes": [
+                "sha256:1ec356301b7dc906d83f371c8f487070e99d3ccf9e501686456394622a01a934",
+                "sha256:68a9a4619a666ea6439f2ff250c12a853cd1cbd5158d258bd824a7df6be2f868"
+            ],
+            "markers": "python_version >= '3.10'",
+            "version": "==4.9.4"
+        },
+        "pylint": {
+            "hashes": [
+                "sha256:00f51c9b14a3b3ae08cff6b2cdd43f28165c78b165b628692e428fb1f8dc2cf2",
+                "sha256:8cd6a618df75deb013bd7eb98327a95f02a6fb839205a6bbf5456ef96afb317c"
+            ],
+            "index": "pypi",
+            "markers": "python_full_version >= '3.10.0'",
+            "version": "==4.0.5"
+        },
+        "tomlkit": {
+            "hashes": [
+                "sha256:592064ed85b40fa213469f81ac584f67a4f2992509a7c3ea2d632208623a3680",
+                "sha256:cf00efca415dbd57575befb1f6634c4f42d2d87dbba376128adb42c121b87064"
+            ],
+            "markers": "python_version >= '3.9'",
+            "version": "==0.14.0"
+        }
+    },
+    "develop": {}
+}
+
+
+==================================================
+File: requirements.txt
+==================================================
+names
+
+==================================================
+File: task_two.py
+==================================================
+from task_one import Database
+import utilities.api as api
+
+
+@api.optionalParam("pretty", False, type=bool)
+def fetchCustomer(id):
+    data = Database.getRow("customers", "UniqueID", id)
+    customer = data[0] if data else None
+
+    if fetchCustomer.pretty:
+        if customer:
+            profile = f"""
+            <html>
+            <body>
+            <h2>Customer Details</h2>
+            <table border="1">
+            <tr><th>Customer ID</th><th>{customer[0]}</th></tr>
+            <tr><td>First Name</td><td>{customer[1]}</td></tr>
+            <tr><td>Last Name</td><td>{customer[2]}</td></tr>
+            <tr><td>Email</td><td>{customer[3]}</td></tr>
+            <tr><td>Date of Birth</td><td>{customer[4]}</td></tr>
+            <tr><td>Phone Number</td><td>{customer[5]}</td></tr>
+            <tr><td>Town</td><td>{customer[6]}</td></tr>
+            <tr><td>County</td><td>{customer[7]}</td></tr>
+            <tr><td>Status</td><td>{customer[8]}</td></tr>
+            </table>
+            </body>
+            </html>
+            """
+
+            orderlist = ""
+            if (
+                orders := Database.getRow("orders", "CustomerID", customer[0])
+            ) is not None:
+                orderlist += "<h2>Orders</h2>"
+                for order in orders:
+                    orderlist += f"""
+                    <h3>Order ID: {order[0]}</h3>
+                    <table border="1">
+                    <tr><td>Product</td><td>{order[2]}</td></tr>
+                    <tr><td>Quantity</td><td>{order[3]}</td></tr>
+                    <tr><td>Unit Price</td><td>{order[4]}</td></tr>
+                    <tr><td>Delivery Method</td><td>{order[5]}</td></tr>
+                    </table>
+                    """
+
+            return profile + orderlist
+        else:
+            return "<html><body><h2>Error: Customer not found</h2></body></html>"
+
+    else:
+        if customer:
+            orderlist = []
+            if (
+                orders := Database.getRow("orders", "CustomerID", customer[0])
+            ) is not None:
+                for order in orders:
+                    orderlist.append(
+                        {
+                            "order_id": order[0],
+                            "product": order[2],
+                            "quantity": order[3],
+                            "unit_price": order[4],
+                            "delivery_method": order[5],
+                        }
+                    )
+
+            response = {
+                "Customer Profile": {
+                    "customer_id": customer[0],
+                    "first_name": customer[1],
+                    "last_name": customer[2],
+                    "email": customer[3],
+                    "dob": customer[4],
+                    "phone_number": customer[5],
+                    "town": customer[6],
+                    "county": customer[7],
+                    "status": customer[8],
+                }
+            }
+
+            if orderlist:
+                print(orderlist[0])
+                response["Orders"] = {
+                    order["order_id"]: {
+                        field: value
+                        for field, value in order.items()
+                        if field != "order_id"
+                    }
+                    for order in orderlist
+                }  # Use the OrderID as the key for the orders
+
+            return response
+        else:
+            return {"error": "Customer not found"}
+
+
+api.new_endpoint("/customer/<id>", fetchCustomer)
+api.start()
+
+
+==================================================
+File: .env.example
+==================================================
+DB_HOST=localhost
+DB_NAME=shopdb
+DB_USER=root
+DB_PASSWORD=p@ssw0rd
+DB_PORT=3306
+API_PORT=8000
+OUTPUT_DIR=output
+
+==================================================
+File: data/customers_data.csv
+==================================================
+UniqueID,First Name,Surname,Email,DOB,Phone,Town,County,Status
+CUS8415,Kris,Cross,KrIS.CROSS172@yandex.co.uk,+44 4210 997 948,25/8/1961,Lincoln,Greater Manchester,archived
+CUS2678,Kathleen,Palka,katHLeeN.PALKa647@outlook.co.uk,+44 4240 877 603,9/11/1982,Exeter,East Riding of Yorkshire,active
+CUS1161,David,Collazo,daViD.COLlAZO291@hotmail.co.uk,+44 0869 840 455,3/7/1935,Chester,Merseyside,active
+CUS6202,Angela,Zachary,AngeLa.ZacHarY384@outlook.org,+44 6799 538 433,22/6/1909,Bradford,Highland,suspended
+CUS0707,Jessica,Brooksher,JesSIca.BRoOKsHER808@outlook.co.uk,+44 3228 786 308,20/11/1944,Derby,Cumbria,active
+CUS7871,William,Backer,wIlLIam.BAcker878@hotmail.org,+44 1802 054 875,27/8/1951,Dundee,Northumberland,suspended
+CUS4622,Maria,Foster,maRIA.FOsTeR562@yahoo.gov,+44 1850 056 334,14/2/1902,Reading,Angus,active
+CUS7984,Eric,Lewis,erIc.LEWis543@yahoo.gov,+44 5703 369 781,25/4/1910,Guildford,South Yorkshire,archived
+CUS1197,Steven,Bedward,sTEVEn.beDWARD400@yandex.net,+44 1737 316 923,20/12/1936,Sheffield,East Dunbartonshire,active
+CUS8217,Faith,Christion,FaITH.ChrIsTiOn981@yandex.org,+44 5081 665 219,27/6/1944,Chelmsford,Fife,archived
+CUS6149,Dennis,Humes,DEnNIS.humEs166@yahoo.org,+44 1851 886 176,8/8/1978,Exeter,Lancashire,suspended
+CUS4421,Roy,Scudder,rOY.sCuDdeR615@gmail.co.uk,+44 7355 943 548,8/2/1990,Exeter,Herefordshire,active
+CUS2650,Peggy,Noggler,pEggy.NoggleR119@yahoo.gov,+44 2194 031 908,23/10/1977,Shrewsbury,Bristol,archived
+CUS1867,Joyce,Balke,joYCE.baLke770@hotmail.org,+44 8395 987 570,13/5/1956,Hull,Dorset,suspended
+CUS2714,Patricia,Alexander,PatrICia.aLeXANdeR335@hotmail.gov,+44 5667 117 129,16/12/1913,Southampton,West Midlands,suspended
+CUS6586,Eduardo,Green,EDUarDO.gREeN739@outlook.co.uk,+44 0620 694 016,5/7/1921,Inverness,Cheshire,suspended
+CUS8485,Mark,Viola,maRk.VIOLA448@yahoo.gov,+44 3911 065 585,26/10/1979,York,Inverclyde,archived
+CUS4614,Jose,Brouillet,JosE.BrOuiLlet304@gmail.co.uk,+44 4319 683 531,25/4/1938,Nottingham,Tayside,active
+CUS8717,Clarence,Meunier,clArEncE.MEunieR240@yandex.gov,+44 7306 141 150,27/1/1918,York,East Sussex,archived
+CUS3117,Rufus,Hopper,RUfus.hoPpEr319@outlook.co.uk,+44 2242 490 827,28/9/1923,Sheffield,East Lothian,active
+CUS5811,Vicki,Calhoun,VIcki.CAlHOUN996@yahoo.net,+44 7635 782 268,29/8/2006,Chelmsford,Rutland,suspended
+CUS6191,Donna,Bowman,dONNa.bOwMaN158@hotmail.com,+44 3952 712 921,8/4/1938,Sheffield,Greater Manchester,active
+CUS6705,Anthony,Patrick,aNtHoNY.PaTRicK808@outlook.co.uk,+44 8722 070 192,28/6/1990,City of London,West Midlands,archived
+CUS6841,David,Haddad,davId.HaDdad576@yahoo.org,+44 7295 975 572,21/5/1983,Brighton,Cambridgeshire,active
+CUS8670,Edith,Nelson,edItH.nelson327@hotmail.gov,+44 0236 500 945,3/2/1924,Newcastle upon Tyne,Norfolk,active
+CUS7227,Danielle,Zalewski,dANIelLe.ZaLeWSki730@gmail.net,+44 3836 111 090,19/3/1971,Chester,Derbyshire,archived
+CUS4080,Jessica,Espinoza,JESsICA.ESpinoza609@yahoo.net,+44 7895 480 582,15/6/1946,Gloucester,Leicestershire,suspended
+CUS1158,Russell,Florio,RUSsELl.fLORio621@yahoo.net,+44 1387 254 435,5/5/1920,Poole,Staffordshire,active
+CUS2438,Donnie,Dutton,DoNnie.DuttOn578@yandex.org,+44 3302 449 541,23/10/1939,Dundee,East Sussex,archived
+CUS6060,Mark,Vance,marK.vAnce336@outlook.net,+44 1868 579 383,29/7/2005,Newcastle,Leicestershire,suspended
+CUS2229,David,Moran,daVid.MORAn275@gmail.org,+44 5166 441 650,25/4/1986,Norwich,Cambridgeshire,active
+CUS7479,Lucy,Doran,LUCy.Doran363@hotmail.com,+44 1250 443 182,28/5/1996,Nottingham,East Lothian,suspended
+CUS0591,Suzette,Powers,suZettE.pOwErs446@outlook.gov,+44 0247 819 712,27/2/2003,Taunton,Kent,suspended
+CUS7385,Dominique,Alston,dOMIniqUE.alsTON220@yandex.com,+44 7067 986 689,21/9/1929,Taunton,North Yorkshire,active
+CUS5897,Robert,Schenk,RoBErt.SchENK357@yahoo.org,+44 1042 442 367,24/11/1960,Durham,Leicestershire,active
+CUS5027,Eleanor,Hill,eLEANOr.hIll509@hotmail.org,+44 6760 747 399,21/1/1911,Buckingham,Somerset,archived
+CUS0626,Elizabeth,Dion,ELiZabeTh.dIon767@hotmail.net,+44 1967 422 592,14/5/1984,Carlisle,East Ayrshire,active
+CUS8534,Emery,Morris,eMery.MOrriS115@hotmail.gov,+44 8756 793 735,5/11/1981,Cambridge,Hampshire,archived
+CUS6516,Jeffry,Kelly,JEfFRY.KELly845@yandex.net,+44 1154 152 124,30/11/1918,Bradford,Hampshire,archived
+CUS2079,Doris,Hargrove,DoRis.HArGROVe266@hotmail.net,+44 4113 257 207,1/4/1904,Hereford,Derbyshire,suspended
+CUS8037,Brenda,Looper,breNDa.LooPEr355@gmail.com,+44 6223 474 884,27/8/1989,Norwich,Lincolnshire,active
+CUS6281,John,Leary,jOhn.leAry650@gmail.org,+44 2901 402 810,22/1/1933,Cambridge,Surrey,archived
+CUS1728,Charles,Frosch,CHARlES.fROSCH834@outlook.co.uk,+44 4407 815 201,11/6/1904,Stafford,Aberdeenshire,archived
+CUS6533,Daniel,Reifsnyder,DAnIEl.ReiFsNYdeR639@outlook.com,+44 9553 006 891,8/3/1903,Slough,Hertfordshire,archived
+CUS7746,Ginger,Jones,GINGEr.JoNeS467@hotmail.com,+44 3198 975 031,16/3/1907,Kirkcaldy,Middlesex,suspended
+CUS3675,Diane,Kennedy,DIAnE.kEnnEDY553@yahoo.gov,+44 3741 936 028,4/4/1904,Dumfries,City of London,active
+CUS4942,John,Moreland,jOhn.MOrelAnd295@hotmail.net,+44 5407 281 559,26/1/1995,Lancaster,County Durham,suspended
+CUS1207,Joshua,Keesling,joSHua.KEEslING843@outlook.com,+44 2522 271 132,6/8/1977,Greenock,Staffordshire,archived
+CUS4389,Tammy,Lajoie,TaMMy.lAJOIE348@outlook.gov,+44 1497 412 635,27/6/1902,Bedford,Derbyshire,suspended
+CUS0769,David,Graham,dAvId.GrAhAm403@yahoo.org,+44 9544 506 127,2/9/1932,Durham,Clackmannanshire,active
+
+==================================================
+File: data/orders_data.csv
+==================================================
+UniqueID,CustomerID,Product Name,Quantity,Unit Price,Delivery Method
+ORD3237,CUS6841,Taxi Ticket from Moscow to Los Angeles,8,41.28,Fax
+ORD7588,CUS6149,Coach Ticket from Tokyo to Singapore,10,80.37,Carrier Pigeon
+ORD9482,CUS8037,Train Ticket from Berlin to Hong Kong,2,210.04,Fax
+ORD4940,CUS2678,Ship Ticket from Sydney to Madrid,8,243.92,Postage
+ORD1842,CUS7227,Gondola Ticket from Moscow to Dubai,7,145.83,Postage
+ORD5428,CUS8534,Gondola Ticket from New York to Singapore,4,275.74,Carrier Pigeon
+ORD5801,CUS3117,Gondola Ticket from Moscow to Madrid,2,105.57,Mobile
+ORD4139,CUS4614,Gondola Ticket from Tokyo to Rome,1,129.86,Postage
+ORD8755,CUS8534,Tube Ticket from Sydney to Madrid,2,372.32,Mobile
+ORD0571,CUS4080,Coach Ticket from Berlin to Madrid,9,398.24,Carrier Pigeon
+ORD3543,CUS3117,Gondola Ticket from London to Rome,6,291.09,Postage
+ORD9585,CUS8534,Flight Ticket from Tokyo to Dubai,1,369.55,Mobile
+ORD3633,CUS0707,Train Ticket from Moscow to Hong Kong,4,176.06,Carrier Pigeon
+ORD7029,CUS8534,Flight Ticket from London to Los Angeles,7,65.79,Carrier Pigeon
+ORD1190,CUS7385,Taxi Ticket from Moscow to Singapore,8,81.16,Fax
+ORD9759,CUS5811,Ship Ticket from London to Hong Kong,2,105.39,Mobile
+ORD6538,CUS6705,Bus Ticket from New York to Hong Kong,1,29.09,Mobile
+ORD9987,CUS6705,Flight Ticket from New York to Madrid,6,31.78,Mobile
+ORD9005,CUS4421,Bus Ticket from London to Dubai,4,218.9,Carrier Pigeon
+ORD2417,CUS0707,Flight Ticket from Berlin to Madrid,10,271.27,Pick-up at Station
+ORD3177,CUS0591,Ship Ticket from Moscow to Singapore,10,177.95,Fax
+ORD5781,CUS7479,Ship Ticket from Sydney to Los Angeles,2,21.63,Mobile
+ORD8214,CUS7385,Gondola Ticket from Tokyo to Los Angeles,3,84.44,Carrier Pigeon
+ORD6528,CUS0707,Ship Ticket from Paris to Dubai,3,323.45,Mobile
+ORD4467,CUS6202,Bus Ticket from New York to Dubai,7,295.39,Mobile
+ORD8243,CUS7385,Taxi Ticket from Paris to Rome,3,98.93,Pick-up at Station
+ORD5200,CUS4614,Train Ticket from Paris to Los Angeles,10,113.97,Carrier Pigeon
+ORD3148,CUS4389,Gondola Ticket from Sydney to Hong Kong,5,96.33,Pick-up at Station
+ORD0337,CUS6705,Train Ticket from Moscow to Singapore,9,25.87,Fax
+ORD4733,CUS0707,Gondola Ticket from Moscow to Singapore,9,130.25,Mobile
+ORD0739,CUS8534,Flight Ticket from Paris to Dubai,9,175.97,Mobile
+ORD3880,CUS2079,Train Ticket from Tokyo to Rome,4,227.39,Pick-up at Station
+ORD9810,CUS2714,Train Ticket from Tokyo to Singapore,9,215.83,Pick-up at Station
+ORD6317,CUS1867,Train Ticket from Moscow to Dubai,4,196.09,Mobile
+ORD4083,CUS6533,Train Ticket from Moscow to Singapore,5,35.88,Mobile
+ORD2660,CUS5811,Flight Ticket from Paris to Los Angeles,8,322.09,Pick-up at Station
+ORD9485,CUS5897,Gondola Ticket from Sydney to Los Angeles,6,22.45,Pick-up at Station
+ORD4544,CUS2438,Tube Ticket from Sydney to Los Angeles,3,244.46,Carrier Pigeon
+ORD0479,CUS6533,Tube Ticket from New York to Singapore,8,382.13,Fax
+ORD8004,CUS0591,Ship Ticket from Sydney to Rome,2,301.61,Pick-up at Station
+ORD4190,CUS2714,Gondola Ticket from London to Rome,3,101.57,Postage
+ORD6875,CUS2079,Flight Ticket from Moscow to Dubai,4,170.64,Mobile
+ORD1787,CUS1197,Bus Ticket from Sydney to Rome,6,196.75,Pick-up at Station
+ORD4810,CUS1728,Taxi Ticket from Tokyo to Madrid,5,179.65,Postage
+ORD8354,CUS8485,Flight Ticket from Paris to Hong Kong,6,335.64,Fax
+ORD7440,CUS7479,Ship Ticket from Moscow to Madrid,4,285.71,Postage
+ORD2119,CUS5811,Train Ticket from Sydney to Hong Kong,8,223.46,Pick-up at Station
+ORD5274,CUS6191,Flight Ticket from Berlin to Madrid,6,97.47,Postage
+ORD3791,CUS7871,Flight Ticket from London to Hong Kong,2,171.11,Mobile
+ORD0934,CUS6705,Tube Ticket from Tokyo to Singapore,7,41.34,Pick-up at Station
+
+==================================================
+File: utilities/api.py
+==================================================
+from flask import Flask, request
+from utilities.environment import env
+import functools
+
+app = Flask(__name__)
+
+
+def new_endpoint(endpoint, func):
+    app.add_url_rule(endpoint, view_func=func, methods=["GET"])
+
+
+def start():
+    app.run(port=env("API_PORT"))
+
+
+true, false = True, False  # This makes boolean parameters more web-friendly
+
+
+def optionalParam(name, default, type=str):
+    def annotation(func):
+        if not hasattr(func, "optional_params"):
+            func.optional_params = {}
+        func.optional_params[name] = default
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for param_name, param_default in wrapper.optional_params.items():
+                param_value = request.args.get(param_name, param_default)
+
+                if type != str:
+                    param_value = (
+                        type(param_value)
+                        if isinstance(param_value, str)
+                        else param_value
+                    )
+                    # This next fallback prevents attempts to inject code
+                    if not isinstance(param_value, type):
+                        param_value = param_default
+                setattr(wrapper, param_name, param_value)
+
+            return func(*args, **kwargs)
+
+        wrapper.optional_params = func.optional_params
+        return wrapper
+
+    return annotation
+
+
+==================================================
+File: utilities/database.py
+==================================================
+import utilities.dbsetup as dbsetup, mysql.connector as mysqldb
+from utilities.environment import env
+
+dbname = env("DB_NAME")
+
+
+# Wrapper method that guards against SQL injection
+def sql_guard(func):
+    def wrapper(*args, **kwargs):
+        for arg in args:
+            if isinstance(arg, str) and (";" in arg or "--" in arg):
+                raise ValueError("Potential SQL injection detected.")
+        for value in kwargs.values():
+            if isinstance(value, str) and (";" in value or "--" in value):
+                raise ValueError("Potential SQL injection detected.")
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+# First we make sure that mySQL is running
+dbsetup.run()
+dbsetup.wait(mysqldb)
+
+# Next a connection has to be established to the mySQL database
+db = mysqldb.connect(
+    host=env("DB_HOST"), user=env("DB_USER"), password=env("DB_PASSWORD")
+)
+cursor = db.cursor(buffered=True)
+
+# Now the database can be created and entered if it doesn't already exist
+cursor.execute(f"CREATE DATABASE IF NOT EXISTS {dbname}")
+cursor.execute(f"USE {dbname}")
+
+
+def tablecheck(func):
+    def wrapper(table, *args, **kwargs):
+        if not Database.isTable(table):
+            return None
+        return func(table, *args, **kwargs)
+
+    return wrapper
+
+
+class Database:
+    @staticmethod
+    @sql_guard
+    def reset():
+        cursor.execute("SHOW TABLES")
+        tables = cursor.fetchall()
+
+        for table in tables:
+            cursor.execute(f"DROP TABLE {table[0]}")
+
+        db.commit()
+
+    @staticmethod
+    @sql_guard
+    def ensureTable(table, columns):
+        cursor.execute(
+            f"CREATE TABLE IF NOT EXISTS {table} ({', '.join(f'{column} VARCHAR(255)' for column in columns)});"
+        )
+
+    @staticmethod
+    @sql_guard
+    def isTable(table):
+        cursor.execute(f"SHOW TABLES LIKE '{table}'")
+        return cursor.fetchone() is not None
+
+    @staticmethod
+    @sql_guard
+    def insert(table, columns, row):
+        Database.ensureTable(table, columns)
+
+        columns = ", ".join(columns)
+        values = ", ".join(f"'{value}'" for value in row)
+        cursor.execute(f"INSERT INTO {table} ({columns}) VALUES ({values})")
+
+        db.commit()
+
+    @staticmethod
+    @tablecheck
+    @sql_guard
+    def getColumn(table, column):
+        cursor.execute(f"SELECT {column} FROM {table}")
+        return cursor.fetchall()
+
+    @staticmethod
+    @tablecheck
+    @sql_guard
+    def getRow(table, column, value):
+        cursor.execute(f"SELECT * FROM {table} WHERE {column} = '{value}'")
+        return cursor.fetchall()
+
+    @staticmethod
+    @tablecheck
+    @sql_guard
+    def getHeaders(table):
+        cursor.execute(f"SHOW COLUMNS FROM {table}")
+        return [column[0] for column in cursor.fetchall()]
+
+
+==================================================
+File: utilities/dbsetup.py
+==================================================
+import subprocess, time
+from utilities.environment import env
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
+
+name = "mySQL-shop"
+
+
+def run():
+    # Check if mySQL is already running
+    result = subprocess.run(
+        [
+            "docker",
+            "ps",
+            "--filter",
+            f"name={name}",
+            "--filter",
+            "status=running",
+            "--format",
+            "{{.Names}}",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    if name not in result.stdout:
+        # Next we will run the mySQL instance and allow for the fact that docker may already have a container
+        result = subprocess.run(
+            [
+                "docker",
+                "ps",
+                "--filter",
+                f"name={name}",
+                "--filter",
+                "status=exited",
+                "--format",
+                "{{.Names}}",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        if name in result.stdout:
+            print("Starting mySQL instance...")
+            subprocess.run(["docker", "start", name], check=True)
+            print("mySQL instance started.")
+
+        else:
+            subprocess.run(
+                [
+                    "docker",
+                    "run",
+                    "-d",
+                    "--name",
+                    name,
+                    "-e",
+                    f"MYSQL_ROOT_PASSWORD={env('DB_PASSWORD')}",
+                    "-e",
+                    f"MYSQL_DATABASE={env('DB_NAME')}",
+                    "-p",
+                    f"{env('DB_PORT')}:{env('DB_PORT')}",
+                    "mysql:latest",
+                ],
+                check=True,
+            )
+
+
+def wait(mysqldb):
+    # Wait for mySQL to start accepting connections from scripts
+    max_attempts = 30
+
+    with Progress(
+        SpinnerColumn(),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total} attempts"),
+        transient=True,
+    ) as progress:
+        task = progress.add_task("Waiting for MySQL to start...", total=max_attempts)
+
+        for _ in range(max_attempts):
+            try:
+                test_db = mysqldb.connect(
+                    host=env("DB_HOST"),
+                    user=env("DB_USER"),
+                    password=env("DB_PASSWORD"),
+                    port=int(env("DB_PORT")),
+                )
+                test_db.close()
+                return
+            except mysqldb.Error:
+                time.sleep(2)
+                progress.advance(task)
+
+    raise Exception("MySQL failed to start after maximum attempts.")
+
+
+==================================================
+File: utilities/environment.py
+==================================================
+vars = {}
+env = lambda key: vars[key]
+path = ".env"
+
+try:
+    with open(path, "r") as f:
+        for line in f:
+            var, value = line.strip().split("=", 1)
+            vars[var] = value
+except FileNotFoundError:
+    print(f"You need to create a {path} file to operate the application! Copy .env.example to {path} and change values if necessary.")
+
+    for line in f:
+        line = line.strip()
+        if not line or "=" not in line:
+            continue
+        var, value = line.split("=", 1)
+
+==================================================
+File: utilities/data_generator.py
+==================================================
+# A helper program that can be run from the command-line
+# It will quickly generate a unique set of both Customer and Order records.
+
+import names, random, rstr
+
+rows = 50
+location = "data"
+randomcase = lambda s: "".join(
+    c.upper() if random.random() < 0.5 else c.lower() for c in s
+)  # A helper function to introduce additional variation in the email addresses
+uids = [i for i in range(max(100 + rows, 9999))]
+random.shuffle(uids)
+counties = [
+    "Bedfordshire",
+    "Berkshire",
+    "Bristol",
+    "Buckinghamshire",
+    "Cambridgeshire",
+    "Cheshire",
+    "City of London",
+    "Cornwall",
+    "County Durham",
+    "Cumbria",
+    "Derbyshire",
+    "Devon",
+    "Dorset",
+    "East Riding of Yorkshire",
+    "East Sussex",
+    "Essex",
+    "Gloucestershire",
+    "Middlesex",
+    "Greater Manchester",
+    "Hampshire",
+    "Herefordshire",
+    "Hertfordshire",
+    "Isle of Wight",
+    "Kent",
+    "Lancashire",
+    "Leicestershire",
+    "Lincolnshire",
+    "Merseyside",
+    "Norfolk",
+    "North Yorkshire",
+    "Northamptonshire",
+    "Northumberland",
+    "Nottinghamshire",
+    "Oxfordshire",
+    "Rutland",
+    "Shropshire",
+    "Somerset",
+    "South Yorkshire",
+    "Staffordshire",
+    "Suffolk",
+    "Surrey",
+    "Tyne and Wear",
+    "Warwickshire",
+    "West Midlands",
+    "West Sussex",
+    "West Yorkshire",
+    "Wiltshire",
+    "Worcestershire",
+    "Aberdeenshire",
+    "Angus",
+    "Argyll and Bute",
+    "Clackmannanshire",
+    "Dumfries and Galloway",
+    "Dundee City",
+    "East Ayrshire",
+    "East Dunbartonshire",
+    "East Lothian",
+    "East Renfrewshire",
+    "West Lothian",
+    "Falkirk",
+    "Fife",
+    "Strathclyde",
+    "Highland",
+    "Inverclyde",
+    "Tayside",
+    "North Lanarkshire",
+]
+towns = [
+    "Bedford",
+    "Luton",
+    "Reading",
+    "Slough",
+    "Bristol",
+    "Buckingham",
+    "Cambridge",
+    "Chester",
+    "City of London",
+    "Truro",
+    "Durham",
+    "Carlisle",
+    "Derby",
+    "Exeter",
+    "Poole",
+    "Hull",
+    "Brighton",
+    "Chelmsford",
+    "Gloucester",
+    "Manchester",
+    "Southampton",
+    "Hereford",
+    "St Albans",
+    "Isle of Wight",
+    "Maidstone",
+    "Lancaster",
+    "Leicester",
+    "Lincoln",
+    "Liverpool",
+    "Norwich",
+    "York",
+    "Northampton",
+    "Newcastle",
+    "Nottingham",
+    "Oxford",
+    "Rutland",
+    "Shrewsbury",
+    "Taunton",
+    "Sheffield",
+    "Stafford",
+    "Ipswich",
+    "Guildford",
+    "Newcastle upon Tyne",
+    "Warwick",
+    "Birmingham",
+    "Chichester",
+    "Bradford",
+    "Wolverhampton",
+    "Chesterfield",
+    "Worcester",
+    "Aberdeen",
+    "Dundee",
+    "Dumfries",
+    "Kirkcaldy",
+    "Glasgow",
+    "Inverness",
+    "Greenock",
+]
+
+# The customer records have to be written first to make sure that the order records refer to customers who actually exist
+validIDs = []
+with open(f"{location}/customers_data.csv", "w") as file:
+    file.write("UniqueID,First Name,Surname,Email,DOB,Phone,Town,County,Status\n")
+
+    for i in range(rows):
+        validIDs.append(uniqueID := f"CUS{str(uids[i]).zfill(4)}")
+        firstname = names.get_first_name()
+        surname = names.get_last_name()
+        email = (
+            f"{randomcase(firstname)}.{randomcase(surname)}{random.randint(100, 999)}@"
+            f"{random.choice(['gmail', 'yahoo', 'yandex', 'hotmail', 'outlook'])}."
+            f"{random.choice(['org', 'com', 'net', 'co.uk', 'gov'])}"
+        )
+        phone = rstr.xeger(fr'\+44 {r'\d' * 4} {r'\d' * 3} {r'\d' * 3}')
+        dob = f"{random.randrange(1, 32)}/{random.randrange(1, 13)}/{random.randrange(1900, 2010)}"
+        town = random.choice(towns)
+        # Obviously some towns are gonna be in the wrong county, but this is okay for our purposes
+        county = random.choice(counties)
+        status = random.choice(["active", "archived", "suspended"])
+
+        file.write(
+            f"{uniqueID},{firstname},{surname},{email},{phone},{dob},{town},{county},{status}{"\n" if i != rows - 1 else ""}"
+        )
+
+with open(f"{location}/orders_data.csv", "w") as file:
+    file.write("UniqueID,CustomerID,Product Name,Quantity,Unit Price,Delivery Method\n")
+
+    for i in range(rows):
+        uniqueID = f"ORD{str(uids[i + rows]).zfill(4)}"
+        customerID = random.choice(validIDs)
+        productName = (
+            f"{random.choice(['Flight', 'Taxi', 'Train', 'Bus', 'Coach', 'Tube', 'Gondola', 'Ship'])} Ticket from "
+            f"{random.choice(['London', 'Paris', 'New York', 'Tokyo', 'Sydney', 'Berlin', 'Moscow'])} to "
+            f"{random.choice(['Rome', 'Madrid', 'Dubai', 'Singapore', 'Hong Kong', 'Los Angeles'])}"
+        )
+        quantity = random.randint(1, 10)
+        unitPrice = round(random.uniform(10.0, 400.0), 2)
+        delivery = random.choice(
+            ["Mobile", "Pick-up at Station", "Postage", "Fax", "Carrier Pigeon"]
+        )
+
+        file.write(
+            f"{uniqueID},{customerID},{productName},{quantity},{unitPrice},{delivery}{"\n" if i != rows - 1 else ""}"
+        )
+
+
+==================================================
+File: _codebase_digest.txt
+==================================================
+Codebase Analysis for: sheffield_database_exercise
+
+Directory Structure:
+└── 
+    ├── task_one.py
+    ├── task_three.py
+    ├── output.example
+    │   ├── active_customers.csv
+    │   └── active_customer_orders.csv
+    ├── Pipfile.lock
+    ├── requirements.txt
+    ├── task_two.py
+    ├── .env.example
+    ├── data
+    │   ├── customers_data.csv
+    │   └── orders_data.csv
+    ├── utilities
+    │   ├── api.py
+    │   ├── database.py
+    │   ├── dbsetup.py
+    │   ├── environment.py
+    │   └── data_generator.py
+    ├── Pipfile
+    ├── output
+    │   ├── active_customers.csv
+    │   └── active_customer_orders.csv
+    ├── .env
+    └── LICENSE
+
+Summary:
+Total files analyzed: 20
+Total directories analyzed: 4
+Estimated output size: 75.25 KB
+Actual analyzed size: 72.33 KB
+Total tokens: 19751
+Actual text content size: 72.14 KB
+
+File Contents:
+
+==================================================
+File: task_one.py
+==================================================
+import csv
+from utilities.database import Database
+
+tables = ["customers", "orders"]
+
+for name in tables:
+    raw_data = f"data/{name}_data.csv"
+
+    with open(raw_data, "r") as f:
+        rows = csv.reader(f)
+        columns = [column.replace(" ", "") for column in next(rows)]
+
+        for row in rows:
+            if not Database.getRow(name, columns[0], row[0]):
+                Database.insert(name, columns, row)
+
+if __name__ == "__main__":
+    print("Task 1 has run successfully.")
+    print("The database has been populated with data from the CSV files.")
+
+
+==================================================
+File: task_three.py
+==================================================
+from utilities.database import Database
+from operator import mul
+from utilities.environment import env
+import os
+
+
+def wordjoin(*args):
+    return " ".join(args)
+
+
+def getOrdersByCustomerID(customer_id):
+    orders = Database.getRow("orders", "CustomerID", customer_id)
+    return orders
+
+
+def fetchCustomersByField(field, value):
+    customers = Database.getRow("customers", field, value)
+    return customers
+
+
+def fetchCustomersByStatus(status):
+    customers = fetchCustomersByField("Status", status)
+    return customers
+
+
+def addNewField(
+    customers, headers, new_field_name, fields_to_combine, operation, format=None
+):
+    if new_field_name not in headers:
+        headers.append(new_field_name)
+    for i, customer in enumerate(customers):
+        new_field_value = operation(
+            *[customer[headers.index(field)] for field in fields_to_combine]
+        )
+        if format:
+            new_field_value = f"{new_field_value:{format}}"
+        customers[i] = customer + (new_field_value,)
+
+
+customer_headers = Database.getHeaders("customers")
+active_customers = fetchCustomersByStatus("Active")
+addNewField(
+    active_customers, customer_headers, "Full Name", ["FirstName", "Surname"], wordjoin
+)
+
+customer_orders = {
+    customer[0]: getOrdersByCustomerID(customer[0]) for customer in active_customers
+}
+order_headers = Database.getHeaders("orders")
+number_fields = ["UnitPrice", "Quantity"]
+
+for customer, orders in customer_orders.items():
+    for i in range(len(orders)):
+        for field in number_fields:
+            orders[i] = (
+                orders[i][: order_headers.index(field)]
+                + (eval(orders[i][order_headers.index(field)]),)
+                + orders[i][order_headers.index(field) + 1 :]
+            )
+
+    addNewField(orders, order_headers, "Total Price", number_fields, mul, format=".2f")
+
+if not os.path.exists(env("OUTPUT_DIR")):
+    os.makedirs(env("OUTPUT_DIR"))
+
+with open(env("OUTPUT_DIR") + "/active_customers.csv", "w") as f:
+    f.write(",".join(customer_headers) + "\n")
+    for customer in active_customers:
+        f.write(",".join(map(str, customer)) + "\n")
+
+with open(env("OUTPUT_DIR") + "/active_customer_orders.csv", "w") as f:
+    f.write(",".join(order_headers) + "\n")
+    for orders in customer_orders.values():
+        for order in orders:
+            f.write(",".join(map(str, order)) + "\n")
+
+
+==================================================
+File: output.example/active_customers.csv
+==================================================
+UniqueID,FirstName,Surname,Email,DOB,Phone,Town,County,Status,Full Name
+CUS2678,Kathleen,Palka,katHLeeN.PALKa647@outlook.co.uk,+44 4240 877 603,9/11/1982,Exeter,East Riding of Yorkshire,active,Kathleen Palka
+CUS1161,David,Collazo,daViD.COLlAZO291@hotmail.co.uk,+44 0869 840 455,3/7/1935,Chester,Merseyside,active,David Collazo
+CUS0707,Jessica,Brooksher,JesSIca.BRoOKsHER808@outlook.co.uk,+44 3228 786 308,20/11/1944,Derby,Cumbria,active,Jessica Brooksher
+CUS4622,Maria,Foster,maRIA.FOsTeR562@yahoo.gov,+44 1850 056 334,14/2/1902,Reading,Angus,active,Maria Foster
+CUS1197,Steven,Bedward,sTEVEn.beDWARD400@yandex.net,+44 1737 316 923,20/12/1936,Sheffield,East Dunbartonshire,active,Steven Bedward
+CUS4421,Roy,Scudder,rOY.sCuDdeR615@gmail.co.uk,+44 7355 943 548,8/2/1990,Exeter,Herefordshire,active,Roy Scudder
+CUS4614,Jose,Brouillet,JosE.BrOuiLlet304@gmail.co.uk,+44 4319 683 531,25/4/1938,Nottingham,Tayside,active,Jose Brouillet
+CUS3117,Rufus,Hopper,RUfus.hoPpEr319@outlook.co.uk,+44 2242 490 827,28/9/1923,Sheffield,East Lothian,active,Rufus Hopper
+CUS6191,Donna,Bowman,dONNa.bOwMaN158@hotmail.com,+44 3952 712 921,8/4/1938,Sheffield,Greater Manchester,active,Donna Bowman
+CUS6841,David,Haddad,davId.HaDdad576@yahoo.org,+44 7295 975 572,21/5/1983,Brighton,Cambridgeshire,active,David Haddad
+CUS8670,Edith,Nelson,edItH.nelson327@hotmail.gov,+44 0236 500 945,3/2/1924,Newcastle upon Tyne,Norfolk,active,Edith Nelson
+CUS1158,Russell,Florio,RUSsELl.fLORio621@yahoo.net,+44 1387 254 435,5/5/1920,Poole,Staffordshire,active,Russell Florio
+CUS2229,David,Moran,daVid.MORAn275@gmail.org,+44 5166 441 650,25/4/1986,Norwich,Cambridgeshire,active,David Moran
+CUS7385,Dominique,Alston,dOMIniqUE.alsTON220@yandex.com,+44 7067 986 689,21/9/1929,Taunton,North Yorkshire,active,Dominique Alston
+CUS5897,Robert,Schenk,RoBErt.SchENK357@yahoo.org,+44 1042 442 367,24/11/1960,Durham,Leicestershire,active,Robert Schenk
+CUS0626,Elizabeth,Dion,ELiZabeTh.dIon767@hotmail.net,+44 1967 422 592,14/5/1984,Carlisle,East Ayrshire,active,Elizabeth Dion
+CUS8037,Brenda,Looper,breNDa.LooPEr355@gmail.com,+44 6223 474 884,27/8/1989,Norwich,Lincolnshire,active,Brenda Looper
+CUS3675,Diane,Kennedy,DIAnE.kEnnEDY553@yahoo.gov,+44 3741 936 028,4/4/1904,Dumfries,City of London,active,Diane Kennedy
+CUS0769,David,Graham,dAvId.GrAhAm403@yahoo.org,+44 9544 506 127,2/9/1932,Durham,Clackmannanshire,active,David Graham
+
+
+==================================================
+File: output.example/active_customer_orders.csv
+==================================================
+UniqueID,CustomerID,ProductName,Quantity,UnitPrice,DeliveryMethod,Total Price
+ORD4940,CUS2678,Ship Ticket from Sydney to Madrid,8.0,243.92,Postage,1951.36
+ORD3633,CUS0707,Train Ticket from Moscow to Hong Kong,4.0,176.06,Carrier Pigeon,704.24
+ORD2417,CUS0707,Flight Ticket from Berlin to Madrid,10.0,271.27,Pick-up at Station,2712.7
+ORD6528,CUS0707,Ship Ticket from Paris to Dubai,3.0,323.45,Mobile,970.3499999999999
+ORD4733,CUS0707,Gondola Ticket from Moscow to Singapore,9.0,130.25,Mobile,1172.25
+ORD1787,CUS1197,Bus Ticket from Sydney to Rome,6.0,196.75,Pick-up at Station,1180.5
+ORD9005,CUS4421,Bus Ticket from London to Dubai,4.0,218.9,Carrier Pigeon,875.6
+ORD4139,CUS4614,Gondola Ticket from Tokyo to Rome,1.0,129.86,Postage,129.86
+ORD5200,CUS4614,Train Ticket from Paris to Los Angeles,10.0,113.97,Carrier Pigeon,1139.7
+ORD5801,CUS3117,Gondola Ticket from Moscow to Madrid,2.0,105.57,Mobile,211.14
+ORD3543,CUS3117,Gondola Ticket from London to Rome,6.0,291.09,Postage,1746.54
+ORD5274,CUS6191,Flight Ticket from Berlin to Madrid,6.0,97.47,Postage,584.8199999999999
+ORD3237,CUS6841,Taxi Ticket from Moscow to Los Angeles,8.0,41.28,Fax,330.24
+ORD1190,CUS7385,Taxi Ticket from Moscow to Singapore,8.0,81.16,Fax,649.28
+ORD8214,CUS7385,Gondola Ticket from Tokyo to Los Angeles,3.0,84.44,Carrier Pigeon,253.32
+ORD8243,CUS7385,Taxi Ticket from Paris to Rome,3.0,98.93,Pick-up at Station,296.79
+ORD9485,CUS5897,Gondola Ticket from Sydney to Los Angeles,6.0,22.45,Pick-up at Station,134.7
+ORD9482,CUS8037,Train Ticket from Berlin to Hong Kong,2.0,210.04,Fax,420.08
+
+
+==================================================
+File: Pipfile.lock
+==================================================
+{
+    "_meta": {
+        "hash": {
+            "sha256": "1bd8687f82879ffac2396ebd7c15d6a70a91869d7d29cddd2d8fdca755fded0f"
+        },
+        "pipfile-spec": 6,
+        "requires": {
+            "python_version": "3.12"
+        },
+        "sources": [
+            {
+                "name": "pypi",
+                "url": "https://pypi.org/simple",
+                "verify_ssl": true
+            }
+        ]
+    },
+    "default": {
+        "astroid": {
+            "hashes": [
+                "sha256:52f39653876c7dec3e3afd4c2696920e05c83832b9737afc21928f2d2eb7a753",
+                "sha256:986fed8bcf79fb82c78b18a53352a0b287a73817d6dbcfba3162da36667c49a0"
+            ],
+            "markers": "python_full_version >= '3.10.0'",
+            "version": "==4.0.4"
+        },
+        "dill": {
+            "hashes": [
+                "sha256:1e1ce33e978ae97fcfcff5638477032b801c46c7c65cf717f95fbc2248f79a9d",
+                "sha256:423092df4182177d4d8ba8290c8a5b640c66ab35ec7da59ccfa00f6fa3eea5fa"
+            ],
+            "markers": "python_version >= '3.9'",
+            "version": "==0.4.1"
+        },
+        "isort": {
+            "hashes": [
+                "sha256:171ac4ff559cdc060bcfff550bc8404a486fee0caab245679c2abe7cb253c78d",
+                "sha256:28b89bc70f751b559aeca209e6120393d43fbe2490de0559662be7a9787e3d75"
+            ],
+            "markers": "python_full_version >= '3.10.0'",
+            "version": "==8.0.1"
+        },
+        "mccabe": {
+            "hashes": [
+                "sha256:348e0240c33b60bbdf4e523192ef919f28cb2c3d7d5c7794f74009290f236325",
+                "sha256:6c2d30ab6be0e4a46919781807b4f0d834ebdd6c6e3dca0bda5a15f863427b6e"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==0.7.0"
+        },
+        "names": {
+            "hashes": [
+                "sha256:726e46254f2ed03f1ffb5d941dae3bc67c35123941c29becd02d48d0caa2a671"
+            ],
+            "index": "pypi",
+            "version": "==0.3.0"
+        },
+        "platformdirs": {
+            "hashes": [
+                "sha256:1ec356301b7dc906d83f371c8f487070e99d3ccf9e501686456394622a01a934",
+                "sha256:68a9a4619a666ea6439f2ff250c12a853cd1cbd5158d258bd824a7df6be2f868"
+            ],
+            "markers": "python_version >= '3.10'",
+            "version": "==4.9.4"
+        },
+        "pylint": {
+            "hashes": [
+                "sha256:00f51c9b14a3b3ae08cff6b2cdd43f28165c78b165b628692e428fb1f8dc2cf2",
+                "sha256:8cd6a618df75deb013bd7eb98327a95f02a6fb839205a6bbf5456ef96afb317c"
+            ],
+            "index": "pypi",
+            "markers": "python_full_version >= '3.10.0'",
+            "version": "==4.0.5"
+        },
+        "tomlkit": {
+            "hashes": [
+                "sha256:592064ed85b40fa213469f81ac584f67a4f2992509a7c3ea2d632208623a3680",
+                "sha256:cf00efca415dbd57575befb1f6634c4f42d2d87dbba376128adb42c121b87064"
+            ],
+            "markers": "python_version >= '3.9'",
+            "version": "==0.14.0"
+        }
+    },
+    "develop": {}
+}
+
+
+==================================================
+File: requirements.txt
+==================================================
+names
+
+==================================================
+File: task_two.py
+==================================================
+from task_one import Database
+import utilities.api as api
+
+
+@api.optionalParam("pretty", False, type=bool)
+def fetchCustomer(id):
+    data = Database.getRow("customers", "UniqueID", id)
+    customer = data[0] if data else None
+
+    if fetchCustomer.pretty:
+        if customer:
+            profile = f"""
+            <html>
+            <body>
+            <h2>Customer Details</h2>
+            <table border="1">
+            <tr><th>Customer ID</th><th>{customer[0]}</th></tr>
+            <tr><td>First Name</td><td>{customer[1]}</td></tr>
+            <tr><td>Last Name</td><td>{customer[2]}</td></tr>
+            <tr><td>Email</td><td>{customer[3]}</td></tr>
+            <tr><td>Date of Birth</td><td>{customer[4]}</td></tr>
+            <tr><td>Phone Number</td><td>{customer[5]}</td></tr>
+            <tr><td>Town</td><td>{customer[6]}</td></tr>
+            <tr><td>County</td><td>{customer[7]}</td></tr>
+            <tr><td>Status</td><td>{customer[8]}</td></tr>
+            </table>
+            </body>
+            </html>
+            """
+
+            orderlist = ""
+            if (
+                orders := Database.getRow("orders", "CustomerID", customer[0])
+            ) is not None:
+                orderlist += "<h2>Orders</h2>"
+                for order in orders:
+                    orderlist += f"""
+                    <h3>Order ID: {order[0]}</h3>
+                    <table border="1">
+                    <tr><td>Product</td><td>{order[2]}</td></tr>
+                    <tr><td>Quantity</td><td>{order[3]}</td></tr>
+                    <tr><td>Unit Price</td><td>{order[4]}</td></tr>
+                    <tr><td>Delivery Method</td><td>{order[5]}</td></tr>
+                    </table>
+                    """
+
+            return profile + orderlist
+        else:
+            return "<html><body><h2>Error: Customer not found</h2></body></html>"
+
+    else:
+        if customer:
+            orderlist = []
+            if (
+                orders := Database.getRow("orders", "CustomerID", customer[0])
+            ) is not None:
+                for order in orders:
+                    orderlist.append(
+                        {
+                            "order_id": order[0],
+                            "product": order[2],
+                            "quantity": order[3],
+                            "unit_price": order[4],
+                            "delivery_method": order[5],
+                        }
+                    )
+
+            response = {
+                "Customer Profile": {
+                    "customer_id": customer[0],
+                    "first_name": customer[1],
+                    "last_name": customer[2],
+                    "email": customer[3],
+                    "dob": customer[4],
+                    "phone_number": customer[5],
+                    "town": customer[6],
+                    "county": customer[7],
+                    "status": customer[8],
+                }
+            }
+
+            if orderlist:
+                print(orderlist[0])
+                response["Orders"] = {
+                    order["order_id"]: {
+                        field: value
+                        for field, value in order.items()
+                        if field != "order_id"
+                    }
+                    for order in orderlist
+                }  # Use the OrderID as the key for the orders
+
+            return response
+        else:
+            return {"error": "Customer not found"}
+
+
+api.new_endpoint("/customer/<id>", fetchCustomer)
+api.start()
+
+
+==================================================
+File: .env.example
+==================================================
+DB_HOST=localhost
+DB_NAME=shopdb
+DB_USER=root
+DB_PASSWORD=p@ssw0rd
+DB_PORT=3306
+API_PORT=8000
+OUTPUT_DIR=output
+
+==================================================
+File: data/customers_data.csv
+==================================================
+UniqueID,First Name,Surname,Email,DOB,Phone,Town,County,Status
+CUS8415,Kris,Cross,KrIS.CROSS172@yandex.co.uk,+44 4210 997 948,25/8/1961,Lincoln,Greater Manchester,archived
+CUS2678,Kathleen,Palka,katHLeeN.PALKa647@outlook.co.uk,+44 4240 877 603,9/11/1982,Exeter,East Riding of Yorkshire,active
+CUS1161,David,Collazo,daViD.COLlAZO291@hotmail.co.uk,+44 0869 840 455,3/7/1935,Chester,Merseyside,active
+CUS6202,Angela,Zachary,AngeLa.ZacHarY384@outlook.org,+44 6799 538 433,22/6/1909,Bradford,Highland,suspended
+CUS0707,Jessica,Brooksher,JesSIca.BRoOKsHER808@outlook.co.uk,+44 3228 786 308,20/11/1944,Derby,Cumbria,active
+CUS7871,William,Backer,wIlLIam.BAcker878@hotmail.org,+44 1802 054 875,27/8/1951,Dundee,Northumberland,suspended
+CUS4622,Maria,Foster,maRIA.FOsTeR562@yahoo.gov,+44 1850 056 334,14/2/1902,Reading,Angus,active
+CUS7984,Eric,Lewis,erIc.LEWis543@yahoo.gov,+44 5703 369 781,25/4/1910,Guildford,South Yorkshire,archived
+CUS1197,Steven,Bedward,sTEVEn.beDWARD400@yandex.net,+44 1737 316 923,20/12/1936,Sheffield,East Dunbartonshire,active
+CUS8217,Faith,Christion,FaITH.ChrIsTiOn981@yandex.org,+44 5081 665 219,27/6/1944,Chelmsford,Fife,archived
+CUS6149,Dennis,Humes,DEnNIS.humEs166@yahoo.org,+44 1851 886 176,8/8/1978,Exeter,Lancashire,suspended
+CUS4421,Roy,Scudder,rOY.sCuDdeR615@gmail.co.uk,+44 7355 943 548,8/2/1990,Exeter,Herefordshire,active
+CUS2650,Peggy,Noggler,pEggy.NoggleR119@yahoo.gov,+44 2194 031 908,23/10/1977,Shrewsbury,Bristol,archived
+CUS1867,Joyce,Balke,joYCE.baLke770@hotmail.org,+44 8395 987 570,13/5/1956,Hull,Dorset,suspended
+CUS2714,Patricia,Alexander,PatrICia.aLeXANdeR335@hotmail.gov,+44 5667 117 129,16/12/1913,Southampton,West Midlands,suspended
+CUS6586,Eduardo,Green,EDUarDO.gREeN739@outlook.co.uk,+44 0620 694 016,5/7/1921,Inverness,Cheshire,suspended
+CUS8485,Mark,Viola,maRk.VIOLA448@yahoo.gov,+44 3911 065 585,26/10/1979,York,Inverclyde,archived
+CUS4614,Jose,Brouillet,JosE.BrOuiLlet304@gmail.co.uk,+44 4319 683 531,25/4/1938,Nottingham,Tayside,active
+CUS8717,Clarence,Meunier,clArEncE.MEunieR240@yandex.gov,+44 7306 141 150,27/1/1918,York,East Sussex,archived
+CUS3117,Rufus,Hopper,RUfus.hoPpEr319@outlook.co.uk,+44 2242 490 827,28/9/1923,Sheffield,East Lothian,active
+CUS5811,Vicki,Calhoun,VIcki.CAlHOUN996@yahoo.net,+44 7635 782 268,29/8/2006,Chelmsford,Rutland,suspended
+CUS6191,Donna,Bowman,dONNa.bOwMaN158@hotmail.com,+44 3952 712 921,8/4/1938,Sheffield,Greater Manchester,active
+CUS6705,Anthony,Patrick,aNtHoNY.PaTRicK808@outlook.co.uk,+44 8722 070 192,28/6/1990,City of London,West Midlands,archived
+CUS6841,David,Haddad,davId.HaDdad576@yahoo.org,+44 7295 975 572,21/5/1983,Brighton,Cambridgeshire,active
+CUS8670,Edith,Nelson,edItH.nelson327@hotmail.gov,+44 0236 500 945,3/2/1924,Newcastle upon Tyne,Norfolk,active
+CUS7227,Danielle,Zalewski,dANIelLe.ZaLeWSki730@gmail.net,+44 3836 111 090,19/3/1971,Chester,Derbyshire,archived
+CUS4080,Jessica,Espinoza,JESsICA.ESpinoza609@yahoo.net,+44 7895 480 582,15/6/1946,Gloucester,Leicestershire,suspended
+CUS1158,Russell,Florio,RUSsELl.fLORio621@yahoo.net,+44 1387 254 435,5/5/1920,Poole,Staffordshire,active
+CUS2438,Donnie,Dutton,DoNnie.DuttOn578@yandex.org,+44 3302 449 541,23/10/1939,Dundee,East Sussex,archived
+CUS6060,Mark,Vance,marK.vAnce336@outlook.net,+44 1868 579 383,29/7/2005,Newcastle,Leicestershire,suspended
+CUS2229,David,Moran,daVid.MORAn275@gmail.org,+44 5166 441 650,25/4/1986,Norwich,Cambridgeshire,active
+CUS7479,Lucy,Doran,LUCy.Doran363@hotmail.com,+44 1250 443 182,28/5/1996,Nottingham,East Lothian,suspended
+CUS0591,Suzette,Powers,suZettE.pOwErs446@outlook.gov,+44 0247 819 712,27/2/2003,Taunton,Kent,suspended
+CUS7385,Dominique,Alston,dOMIniqUE.alsTON220@yandex.com,+44 7067 986 689,21/9/1929,Taunton,North Yorkshire,active
+CUS5897,Robert,Schenk,RoBErt.SchENK357@yahoo.org,+44 1042 442 367,24/11/1960,Durham,Leicestershire,active
+CUS5027,Eleanor,Hill,eLEANOr.hIll509@hotmail.org,+44 6760 747 399,21/1/1911,Buckingham,Somerset,archived
+CUS0626,Elizabeth,Dion,ELiZabeTh.dIon767@hotmail.net,+44 1967 422 592,14/5/1984,Carlisle,East Ayrshire,active
+CUS8534,Emery,Morris,eMery.MOrriS115@hotmail.gov,+44 8756 793 735,5/11/1981,Cambridge,Hampshire,archived
+CUS6516,Jeffry,Kelly,JEfFRY.KELly845@yandex.net,+44 1154 152 124,30/11/1918,Bradford,Hampshire,archived
+CUS2079,Doris,Hargrove,DoRis.HArGROVe266@hotmail.net,+44 4113 257 207,1/4/1904,Hereford,Derbyshire,suspended
+CUS8037,Brenda,Looper,breNDa.LooPEr355@gmail.com,+44 6223 474 884,27/8/1989,Norwich,Lincolnshire,active
+CUS6281,John,Leary,jOhn.leAry650@gmail.org,+44 2901 402 810,22/1/1933,Cambridge,Surrey,archived
+CUS1728,Charles,Frosch,CHARlES.fROSCH834@outlook.co.uk,+44 4407 815 201,11/6/1904,Stafford,Aberdeenshire,archived
+CUS6533,Daniel,Reifsnyder,DAnIEl.ReiFsNYdeR639@outlook.com,+44 9553 006 891,8/3/1903,Slough,Hertfordshire,archived
+CUS7746,Ginger,Jones,GINGEr.JoNeS467@hotmail.com,+44 3198 975 031,16/3/1907,Kirkcaldy,Middlesex,suspended
+CUS3675,Diane,Kennedy,DIAnE.kEnnEDY553@yahoo.gov,+44 3741 936 028,4/4/1904,Dumfries,City of London,active
+CUS4942,John,Moreland,jOhn.MOrelAnd295@hotmail.net,+44 5407 281 559,26/1/1995,Lancaster,County Durham,suspended
+CUS1207,Joshua,Keesling,joSHua.KEEslING843@outlook.com,+44 2522 271 132,6/8/1977,Greenock,Staffordshire,archived
+CUS4389,Tammy,Lajoie,TaMMy.lAJOIE348@outlook.gov,+44 1497 412 635,27/6/1902,Bedford,Derbyshire,suspended
+CUS0769,David,Graham,dAvId.GrAhAm403@yahoo.org,+44 9544 506 127,2/9/1932,Durham,Clackmannanshire,active
+
+==================================================
+File: data/orders_data.csv
+==================================================
+UniqueID,CustomerID,Product Name,Quantity,Unit Price,Delivery Method
+ORD3237,CUS6841,Taxi Ticket from Moscow to Los Angeles,8,41.28,Fax
+ORD7588,CUS6149,Coach Ticket from Tokyo to Singapore,10,80.37,Carrier Pigeon
+ORD9482,CUS8037,Train Ticket from Berlin to Hong Kong,2,210.04,Fax
+ORD4940,CUS2678,Ship Ticket from Sydney to Madrid,8,243.92,Postage
+ORD1842,CUS7227,Gondola Ticket from Moscow to Dubai,7,145.83,Postage
+ORD5428,CUS8534,Gondola Ticket from New York to Singapore,4,275.74,Carrier Pigeon
+ORD5801,CUS3117,Gondola Ticket from Moscow to Madrid,2,105.57,Mobile
+ORD4139,CUS4614,Gondola Ticket from Tokyo to Rome,1,129.86,Postage
+ORD8755,CUS8534,Tube Ticket from Sydney to Madrid,2,372.32,Mobile
+ORD0571,CUS4080,Coach Ticket from Berlin to Madrid,9,398.24,Carrier Pigeon
+ORD3543,CUS3117,Gondola Ticket from London to Rome,6,291.09,Postage
+ORD9585,CUS8534,Flight Ticket from Tokyo to Dubai,1,369.55,Mobile
+ORD3633,CUS0707,Train Ticket from Moscow to Hong Kong,4,176.06,Carrier Pigeon
+ORD7029,CUS8534,Flight Ticket from London to Los Angeles,7,65.79,Carrier Pigeon
+ORD1190,CUS7385,Taxi Ticket from Moscow to Singapore,8,81.16,Fax
+ORD9759,CUS5811,Ship Ticket from London to Hong Kong,2,105.39,Mobile
+ORD6538,CUS6705,Bus Ticket from New York to Hong Kong,1,29.09,Mobile
+ORD9987,CUS6705,Flight Ticket from New York to Madrid,6,31.78,Mobile
+ORD9005,CUS4421,Bus Ticket from London to Dubai,4,218.9,Carrier Pigeon
+ORD2417,CUS0707,Flight Ticket from Berlin to Madrid,10,271.27,Pick-up at Station
+ORD3177,CUS0591,Ship Ticket from Moscow to Singapore,10,177.95,Fax
+ORD5781,CUS7479,Ship Ticket from Sydney to Los Angeles,2,21.63,Mobile
+ORD8214,CUS7385,Gondola Ticket from Tokyo to Los Angeles,3,84.44,Carrier Pigeon
+ORD6528,CUS0707,Ship Ticket from Paris to Dubai,3,323.45,Mobile
+ORD4467,CUS6202,Bus Ticket from New York to Dubai,7,295.39,Mobile
+ORD8243,CUS7385,Taxi Ticket from Paris to Rome,3,98.93,Pick-up at Station
+ORD5200,CUS4614,Train Ticket from Paris to Los Angeles,10,113.97,Carrier Pigeon
+ORD3148,CUS4389,Gondola Ticket from Sydney to Hong Kong,5,96.33,Pick-up at Station
+ORD0337,CUS6705,Train Ticket from Moscow to Singapore,9,25.87,Fax
+ORD4733,CUS0707,Gondola Ticket from Moscow to Singapore,9,130.25,Mobile
+ORD0739,CUS8534,Flight Ticket from Paris to Dubai,9,175.97,Mobile
+ORD3880,CUS2079,Train Ticket from Tokyo to Rome,4,227.39,Pick-up at Station
+ORD9810,CUS2714,Train Ticket from Tokyo to Singapore,9,215.83,Pick-up at Station
+ORD6317,CUS1867,Train Ticket from Moscow to Dubai,4,196.09,Mobile
+ORD4083,CUS6533,Train Ticket from Moscow to Singapore,5,35.88,Mobile
+ORD2660,CUS5811,Flight Ticket from Paris to Los Angeles,8,322.09,Pick-up at Station
+ORD9485,CUS5897,Gondola Ticket from Sydney to Los Angeles,6,22.45,Pick-up at Station
+ORD4544,CUS2438,Tube Ticket from Sydney to Los Angeles,3,244.46,Carrier Pigeon
+ORD0479,CUS6533,Tube Ticket from New York to Singapore,8,382.13,Fax
+ORD8004,CUS0591,Ship Ticket from Sydney to Rome,2,301.61,Pick-up at Station
+ORD4190,CUS2714,Gondola Ticket from London to Rome,3,101.57,Postage
+ORD6875,CUS2079,Flight Ticket from Moscow to Dubai,4,170.64,Mobile
+ORD1787,CUS1197,Bus Ticket from Sydney to Rome,6,196.75,Pick-up at Station
+ORD4810,CUS1728,Taxi Ticket from Tokyo to Madrid,5,179.65,Postage
+ORD8354,CUS8485,Flight Ticket from Paris to Hong Kong,6,335.64,Fax
+ORD7440,CUS7479,Ship Ticket from Moscow to Madrid,4,285.71,Postage
+ORD2119,CUS5811,Train Ticket from Sydney to Hong Kong,8,223.46,Pick-up at Station
+ORD5274,CUS6191,Flight Ticket from Berlin to Madrid,6,97.47,Postage
+ORD3791,CUS7871,Flight Ticket from London to Hong Kong,2,171.11,Mobile
+ORD0934,CUS6705,Tube Ticket from Tokyo to Singapore,7,41.34,Pick-up at Station
+
+==================================================
+File: utilities/api.py
+==================================================
+from flask import Flask, request
+from utilities.environment import env
+import functools
+
+app = Flask(__name__)
+
+
+def new_endpoint(endpoint, func):
+    app.add_url_rule(endpoint, view_func=func, methods=["GET"])
+
+
+def start():
+    app.run(port=env("API_PORT"))
+
+
+true, false = True, False  # This makes boolean parameters more web-friendly
+
+
+def optionalParam(name, default, type=str):
+    def annotation(func):
+        if not hasattr(func, "optional_params"):
+            func.optional_params = {}
+        func.optional_params[name] = default
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            for param_name, param_default in wrapper.optional_params.items():
+                param_value = request.args.get(param_name, param_default)
+
+                if type != str:
+                    param_value = (
+                        type(param_value)
+                        if isinstance(param_value, str)
+                        else param_value
+                    )
+                    # This next fallback prevents attempts to inject code
+                    if not isinstance(param_value, type):
+                        param_value = param_default
+                setattr(wrapper, param_name, param_value)
+
+            return func(*args, **kwargs)
+
+        wrapper.optional_params = func.optional_params
+        return wrapper
+
+    return annotation
+
+
+==================================================
+File: utilities/database.py
+==================================================
+import utilities.dbsetup as dbsetup, mysql.connector as mysqldb
+from utilities.environment import env
+
+dbname = env("DB_NAME")
+
+
+# Wrapper method that guards against SQL injection
+def sql_guard(func):
+    def wrapper(*args, **kwargs):
+        for arg in args:
+            if isinstance(arg, str) and (";" in arg or "--" in arg):
+                raise ValueError("Potential SQL injection detected.")
+        for value in kwargs.values():
+            if isinstance(value, str) and (";" in value or "--" in value):
+                raise ValueError("Potential SQL injection detected.")
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+# First we make sure that mySQL is running
+dbsetup.run()
+dbsetup.wait(mysqldb)
+
+# Next a connection has to be established to the mySQL database
+db = mysqldb.connect(
+    host=env("DB_HOST"), user=env("DB_USER"), password=env("DB_PASSWORD")
+)
+cursor = db.cursor(buffered=True)
+
+# Now the database can be created and entered if it doesn't already exist
+cursor.execute(f"CREATE DATABASE IF NOT EXISTS {dbname}")
+cursor.execute(f"USE {dbname}")
+
+
+def tablecheck(func):
+    def wrapper(table, *args, **kwargs):
+        if not Database.isTable(table):
+            return None
+        return func(table, *args, **kwargs)
+
+    return wrapper
+
+
+class Database:
+    @staticmethod
+    @sql_guard
+    def reset():
+        cursor.execute("SHOW TABLES")
+        tables = cursor.fetchall()
+
+        for table in tables:
+            cursor.execute(f"DROP TABLE {table[0]}")
+
+        db.commit()
+
+    @staticmethod
+    @sql_guard
+    def ensureTable(table, columns):
+        cursor.execute(
+            f"CREATE TABLE IF NOT EXISTS {table} ({', '.join(f'{column} VARCHAR(255)' for column in columns)});"
+        )
+
+    @staticmethod
+    @sql_guard
+    def isTable(table):
+        cursor.execute(f"SHOW TABLES LIKE '{table}'")
+        return cursor.fetchone() is not None
+
+    @staticmethod
+    @sql_guard
+    def insert(table, columns, row):
+        Database.ensureTable(table, columns)
+
+        columns = ", ".join(columns)
+        values = ", ".join(f"'{value}'" for value in row)
+        cursor.execute(f"INSERT INTO {table} ({columns}) VALUES ({values})")
+
+        db.commit()
+
+    @staticmethod
+    @tablecheck
+    @sql_guard
+    def getColumn(table, column):
+        cursor.execute(f"SELECT {column} FROM {table}")
+        return cursor.fetchall()
+
+    @staticmethod
+    @tablecheck
+    @sql_guard
+    def getRow(table, column, value):
+        cursor.execute(f"SELECT * FROM {table} WHERE {column} = '{value}'")
+        return cursor.fetchall()
+
+    @staticmethod
+    @tablecheck
+    @sql_guard
+    def getHeaders(table):
+        cursor.execute(f"SHOW COLUMNS FROM {table}")
+        return [column[0] for column in cursor.fetchall()]
+
+
+==================================================
+File: utilities/dbsetup.py
+==================================================
+import subprocess, time
+from utilities.environment import env
+
+name = "mySQL-shop"
+
+
+def run():
+    # Check if mySQL is already running
+    result = subprocess.run(
+        [
+            "docker",
+            "ps",
+            "--filter",
+            f"name={name}",
+            "--filter",
+            "status=running",
+            "--format",
+            "{{.Names}}",
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    if name not in result.stdout:
+        # Next we will run the mySQL instance and allow for the fact that docker may already have a container
+        result = subprocess.run(
+            [
+                "docker",
+                "ps",
+                "--filter",
+                f"name={name}",
+                "--filter",
+                "status=exited",
+                "--format",
+                "{{.Names}}",
+            ],
+            capture_output=True,
+            text=True,
+        )
+
+        if name in result.stdout:
+            print("Starting mySQL instance...")
+            subprocess.run(["docker", "start", name], check=True)
+            print("mySQL instance started.")
+
+        else:
+            subprocess.run(
+                [
+                    "docker",
+                    "run",
+                    "-d",
+                    "--name",
+                    name,
+                    "-e",
+                    f"MYSQL_ROOT_PASSWORD={env('DB_PASSWORD')}",
+                    "-e",
+                    f"MYSQL_DATABASE={env('DB_NAME')}",
+                    "-p",
+                    f"{env('DB_PORT')}:{env('DB_PORT')}",
+                    "mysql:latest",
+                ],
+                check=True,
+            )
+
+
+def wait(mysqldb):
+    # Wait for mySQL to start accepting connections from scripts
+    max_attempts = 30
+    attempt = 0
+    while attempt < max_attempts:
+        try:
+            test_db = mysqldb.connect(
+                host=env("DB_HOST"),
+                user=env("DB_USER"),
+                password=env("DB_PASSWORD"),
+                port=int(env("DB_PORT")),
+            )
+            test_db.close()
+            return
+        except mysqldb.Error:
+            if attempt == 0:
+                print("Waiting for MySQL to start...")
+            attempt += 1
+            time.sleep(2)
+            print(f"Attempt {attempt}/{max_attempts}: MySQL not ready yet...")
+
+    raise Exception("MySQL failed to start after maximum attempts.")
+
+
+==================================================
+File: utilities/environment.py
+==================================================
+vars = {}
+env = lambda key: vars.get(key)
+path = ".env"
+
+try:
+    with open(path, "r") as f:
+        for line in f:
+            var, value = line.strip().split("=", 1)
+            vars[var] = value
+except FileNotFoundError:
+    print(f"You need to create a {path} file to operate the application!")
+
+
+==================================================
+File: utilities/data_generator.py
+==================================================
+# A helper program that can be run from the command-line
+# It will quickly generate a unique set of both Customer and Order records.
+
+import names, random, rstr
+
+rows = 50
+location = "data"
+randomcase = lambda s: "".join(
+    c.upper() if random.random() < 0.5 else c.lower() for c in s
+)  # A helper function to introduce additional variation in the email addresses
+uids = [i for i in range(max(100 + rows, 9999))]
+random.shuffle(uids)
+counties = [
+    "Bedfordshire",
+    "Berkshire",
+    "Bristol",
+    "Buckinghamshire",
+    "Cambridgeshire",
+    "Cheshire",
+    "City of London",
+    "Cornwall",
+    "County Durham",
+    "Cumbria",
+    "Derbyshire",
+    "Devon",
+    "Dorset",
+    "East Riding of Yorkshire",
+    "East Sussex",
+    "Essex",
+    "Gloucestershire",
+    "Middlesex",
+    "Greater Manchester",
+    "Hampshire",
+    "Herefordshire",
+    "Hertfordshire",
+    "Isle of Wight",
+    "Kent",
+    "Lancashire",
+    "Leicestershire",
+    "Lincolnshire",
+    "Merseyside",
+    "Norfolk",
+    "North Yorkshire",
+    "Northamptonshire",
+    "Northumberland",
+    "Nottinghamshire",
+    "Oxfordshire",
+    "Rutland",
+    "Shropshire",
+    "Somerset",
+    "South Yorkshire",
+    "Staffordshire",
+    "Suffolk",
+    "Surrey",
+    "Tyne and Wear",
+    "Warwickshire",
+    "West Midlands",
+    "West Sussex",
+    "West Yorkshire",
+    "Wiltshire",
+    "Worcestershire",
+    "Aberdeenshire",
+    "Angus",
+    "Argyll and Bute",
+    "Clackmannanshire",
+    "Dumfries and Galloway",
+    "Dundee City",
+    "East Ayrshire",
+    "East Dunbartonshire",
+    "East Lothian",
+    "East Renfrewshire",
+    "West Lothian",
+    "Falkirk",
+    "Fife",
+    "Strathclyde",
+    "Highland",
+    "Inverclyde",
+    "Tayside",
+    "North Lanarkshire",
+]
+towns = [
+    "Bedford",
+    "Luton",
+    "Reading",
+    "Slough",
+    "Bristol",
+    "Buckingham",
+    "Cambridge",
+    "Chester",
+    "City of London",
+    "Truro",
+    "Durham",
+    "Carlisle",
+    "Derby",
+    "Exeter",
+    "Poole",
+    "Hull",
+    "Brighton",
+    "Chelmsford",
+    "Gloucester",
+    "Manchester",
+    "Southampton",
+    "Hereford",
+    "St Albans",
+    "Isle of Wight",
+    "Maidstone",
+    "Lancaster",
+    "Leicester",
+    "Lincoln",
+    "Liverpool",
+    "Norwich",
+    "York",
+    "Northampton",
+    "Newcastle",
+    "Nottingham",
+    "Oxford",
+    "Rutland",
+    "Shrewsbury",
+    "Taunton",
+    "Sheffield",
+    "Stafford",
+    "Ipswich",
+    "Guildford",
+    "Newcastle upon Tyne",
+    "Warwick",
+    "Birmingham",
+    "Chichester",
+    "Bradford",
+    "Wolverhampton",
+    "Chesterfield",
+    "Worcester",
+    "Aberdeen",
+    "Dundee",
+    "Dumfries",
+    "Kirkcaldy",
+    "Glasgow",
+    "Inverness",
+    "Greenock",
+]
+
+# The customer records have to be written first to make sure that the order records refer to customers who actually exist
+validIDs = []
+with open(f"{location}/customers_data.csv", "w") as file:
+    file.write("UniqueID,First Name,Surname,Email,DOB,Phone,Town,County,Status\n")
+
+    for i in range(rows):
+        validIDs.append(uniqueID := f"CUS{str(uids[i]).zfill(4)}")
+        firstname = names.get_first_name()
+        surname = names.get_last_name()
+        email = (
+            f"{randomcase(firstname)}.{randomcase(surname)}{random.randint(100, 999)}@"
+            f"{random.choice(['gmail', 'yahoo', 'yandex', 'hotmail', 'outlook'])}."
+            f"{random.choice(['org', 'com', 'net', 'co.uk', 'gov'])}"
+        )
+        phone = rstr.xeger(fr'\+44 {r'\d' * 4} {r'\d' * 3} {r'\d' * 3}')
+        dob = f"{random.randrange(1, 32)}/{random.randrange(1, 13)}/{random.randrange(1900, 2010)}"
+        town = random.choice(towns)
+        # Obviously some towns are gonna be in the wrong county, but this is okay for our purposes
+        county = random.choice(counties)
+        status = random.choice(["active", "archived", "suspended"])
+
+        file.write(
+            f"{uniqueID},{firstname},{surname},{email},{phone},{dob},{town},{county},{status}{"\n" if i != rows - 1 else ""}"
+        )
+
+with open(f"{location}/orders_data.csv", "w") as file:
+    file.write("UniqueID,CustomerID,Product Name,Quantity,Unit Price,Delivery Method\n")
+
+    for i in range(rows):
+        uniqueID = f"ORD{str(uids[i + rows]).zfill(4)}"
+        customerID = random.choice(validIDs)
+        productName = (
+            f"{random.choice(['Flight', 'Taxi', 'Train', 'Bus', 'Coach', 'Tube', 'Gondola', 'Ship'])} Ticket from "
+            f"{random.choice(['London', 'Paris', 'New York', 'Tokyo', 'Sydney', 'Berlin', 'Moscow'])} to "
+            f"{random.choice(['Rome', 'Madrid', 'Dubai', 'Singapore', 'Hong Kong', 'Los Angeles'])}"
+        )
+        quantity = random.randint(1, 10)
+        unitPrice = round(random.uniform(10.0, 400.0), 2)
+        delivery = random.choice(
+            ["Mobile", "Pick-up at Station", "Postage", "Fax", "Carrier Pigeon"]
+        )
+
+        file.write(
+            f"{uniqueID},{customerID},{productName},{quantity},{unitPrice},{delivery}{"\n" if i != rows - 1 else ""}"
+        )
+
+
+==================================================
+File: Pipfile
+==================================================
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+names = "*"
+pylint = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
+
+
+==================================================
+File: output/active_customers.csv
+==================================================
+UniqueID,FirstName,Surname,Email,DOB,Phone,Town,County,Status,Full Name
+CUS2678,Kathleen,Palka,katHLeeN.PALKa647@outlook.co.uk,+44 4240 877 603,9/11/1982,Exeter,East Riding of Yorkshire,active,Kathleen Palka
+CUS1161,David,Collazo,daViD.COLlAZO291@hotmail.co.uk,+44 0869 840 455,3/7/1935,Chester,Merseyside,active,David Collazo
+CUS0707,Jessica,Brooksher,JesSIca.BRoOKsHER808@outlook.co.uk,+44 3228 786 308,20/11/1944,Derby,Cumbria,active,Jessica Brooksher
+CUS4622,Maria,Foster,maRIA.FOsTeR562@yahoo.gov,+44 1850 056 334,14/2/1902,Reading,Angus,active,Maria Foster
+CUS1197,Steven,Bedward,sTEVEn.beDWARD400@yandex.net,+44 1737 316 923,20/12/1936,Sheffield,East Dunbartonshire,active,Steven Bedward
+CUS4421,Roy,Scudder,rOY.sCuDdeR615@gmail.co.uk,+44 7355 943 548,8/2/1990,Exeter,Herefordshire,active,Roy Scudder
+CUS4614,Jose,Brouillet,JosE.BrOuiLlet304@gmail.co.uk,+44 4319 683 531,25/4/1938,Nottingham,Tayside,active,Jose Brouillet
+CUS3117,Rufus,Hopper,RUfus.hoPpEr319@outlook.co.uk,+44 2242 490 827,28/9/1923,Sheffield,East Lothian,active,Rufus Hopper
+CUS6191,Donna,Bowman,dONNa.bOwMaN158@hotmail.com,+44 3952 712 921,8/4/1938,Sheffield,Greater Manchester,active,Donna Bowman
+CUS6841,David,Haddad,davId.HaDdad576@yahoo.org,+44 7295 975 572,21/5/1983,Brighton,Cambridgeshire,active,David Haddad
+CUS8670,Edith,Nelson,edItH.nelson327@hotmail.gov,+44 0236 500 945,3/2/1924,Newcastle upon Tyne,Norfolk,active,Edith Nelson
+CUS1158,Russell,Florio,RUSsELl.fLORio621@yahoo.net,+44 1387 254 435,5/5/1920,Poole,Staffordshire,active,Russell Florio
+CUS2229,David,Moran,daVid.MORAn275@gmail.org,+44 5166 441 650,25/4/1986,Norwich,Cambridgeshire,active,David Moran
+CUS7385,Dominique,Alston,dOMIniqUE.alsTON220@yandex.com,+44 7067 986 689,21/9/1929,Taunton,North Yorkshire,active,Dominique Alston
+CUS5897,Robert,Schenk,RoBErt.SchENK357@yahoo.org,+44 1042 442 367,24/11/1960,Durham,Leicestershire,active,Robert Schenk
+CUS0626,Elizabeth,Dion,ELiZabeTh.dIon767@hotmail.net,+44 1967 422 592,14/5/1984,Carlisle,East Ayrshire,active,Elizabeth Dion
+CUS8037,Brenda,Looper,breNDa.LooPEr355@gmail.com,+44 6223 474 884,27/8/1989,Norwich,Lincolnshire,active,Brenda Looper
+CUS3675,Diane,Kennedy,DIAnE.kEnnEDY553@yahoo.gov,+44 3741 936 028,4/4/1904,Dumfries,City of London,active,Diane Kennedy
+CUS0769,David,Graham,dAvId.GrAhAm403@yahoo.org,+44 9544 506 127,2/9/1932,Durham,Clackmannanshire,active,David Graham
+
+
+==================================================
+File: output/active_customer_orders.csv
+==================================================
+UniqueID,CustomerID,ProductName,Quantity,UnitPrice,DeliveryMethod,Total Price
+ORD4940,CUS2678,Ship Ticket from Sydney to Madrid,8,243.92,Postage,1951.36
+ORD3633,CUS0707,Train Ticket from Moscow to Hong Kong,4,176.06,Carrier Pigeon,704.24
+ORD2417,CUS0707,Flight Ticket from Berlin to Madrid,10,271.27,Pick-up at Station,2712.70
+ORD6528,CUS0707,Ship Ticket from Paris to Dubai,3,323.45,Mobile,970.35
+ORD4733,CUS0707,Gondola Ticket from Moscow to Singapore,9,130.25,Mobile,1172.25
+ORD1787,CUS1197,Bus Ticket from Sydney to Rome,6,196.75,Pick-up at Station,1180.50
+ORD9005,CUS4421,Bus Ticket from London to Dubai,4,218.9,Carrier Pigeon,875.60
+ORD4139,CUS4614,Gondola Ticket from Tokyo to Rome,1,129.86,Postage,129.86
+ORD5200,CUS4614,Train Ticket from Paris to Los Angeles,10,113.97,Carrier Pigeon,1139.70
+ORD5801,CUS3117,Gondola Ticket from Moscow to Madrid,2,105.57,Mobile,211.14
+ORD3543,CUS3117,Gondola Ticket from London to Rome,6,291.09,Postage,1746.54
+ORD5274,CUS6191,Flight Ticket from Berlin to Madrid,6,97.47,Postage,584.82
+ORD3237,CUS6841,Taxi Ticket from Moscow to Los Angeles,8,41.28,Fax,330.24
+ORD1190,CUS7385,Taxi Ticket from Moscow to Singapore,8,81.16,Fax,649.28
+ORD8214,CUS7385,Gondola Ticket from Tokyo to Los Angeles,3,84.44,Carrier Pigeon,253.32
+ORD8243,CUS7385,Taxi Ticket from Paris to Rome,3,98.93,Pick-up at Station,296.79
+ORD9485,CUS5897,Gondola Ticket from Sydney to Los Angeles,6,22.45,Pick-up at Station,134.70
+ORD9482,CUS8037,Train Ticket from Berlin to Hong Kong,2,210.04,Fax,420.08
+
+
+==================================================
+File: .env
+==================================================
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=p@ssw0rd
+DB_NAME=shopdb
+DB_PORT=3306
+API_PORT=8000
+OUTPUT_DIR=output
+
+==================================================
+File: Pipfile
+==================================================
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+names = "*"
+pylint = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
+
+
+==================================================
+File: output/active_customers.csv
+==================================================
+UniqueID,FirstName,Surname,Email,DOB,Phone,Town,County,Status,Full Name
+CUS2678,Kathleen,Palka,katHLeeN.PALKa647@outlook.co.uk,+44 4240 877 603,9/11/1982,Exeter,East Riding of Yorkshire,active,Kathleen Palka
+CUS1161,David,Collazo,daViD.COLlAZO291@hotmail.co.uk,+44 0869 840 455,3/7/1935,Chester,Merseyside,active,David Collazo
+CUS0707,Jessica,Brooksher,JesSIca.BRoOKsHER808@outlook.co.uk,+44 3228 786 308,20/11/1944,Derby,Cumbria,active,Jessica Brooksher
+CUS4622,Maria,Foster,maRIA.FOsTeR562@yahoo.gov,+44 1850 056 334,14/2/1902,Reading,Angus,active,Maria Foster
+CUS1197,Steven,Bedward,sTEVEn.beDWARD400@yandex.net,+44 1737 316 923,20/12/1936,Sheffield,East Dunbartonshire,active,Steven Bedward
+CUS4421,Roy,Scudder,rOY.sCuDdeR615@gmail.co.uk,+44 7355 943 548,8/2/1990,Exeter,Herefordshire,active,Roy Scudder
+CUS4614,Jose,Brouillet,JosE.BrOuiLlet304@gmail.co.uk,+44 4319 683 531,25/4/1938,Nottingham,Tayside,active,Jose Brouillet
+CUS3117,Rufus,Hopper,RUfus.hoPpEr319@outlook.co.uk,+44 2242 490 827,28/9/1923,Sheffield,East Lothian,active,Rufus Hopper
+CUS6191,Donna,Bowman,dONNa.bOwMaN158@hotmail.com,+44 3952 712 921,8/4/1938,Sheffield,Greater Manchester,active,Donna Bowman
+CUS6841,David,Haddad,davId.HaDdad576@yahoo.org,+44 7295 975 572,21/5/1983,Brighton,Cambridgeshire,active,David Haddad
+CUS8670,Edith,Nelson,edItH.nelson327@hotmail.gov,+44 0236 500 945,3/2/1924,Newcastle upon Tyne,Norfolk,active,Edith Nelson
+CUS1158,Russell,Florio,RUSsELl.fLORio621@yahoo.net,+44 1387 254 435,5/5/1920,Poole,Staffordshire,active,Russell Florio
+CUS2229,David,Moran,daVid.MORAn275@gmail.org,+44 5166 441 650,25/4/1986,Norwich,Cambridgeshire,active,David Moran
+CUS7385,Dominique,Alston,dOMIniqUE.alsTON220@yandex.com,+44 7067 986 689,21/9/1929,Taunton,North Yorkshire,active,Dominique Alston
+CUS5897,Robert,Schenk,RoBErt.SchENK357@yahoo.org,+44 1042 442 367,24/11/1960,Durham,Leicestershire,active,Robert Schenk
+CUS0626,Elizabeth,Dion,ELiZabeTh.dIon767@hotmail.net,+44 1967 422 592,14/5/1984,Carlisle,East Ayrshire,active,Elizabeth Dion
+CUS8037,Brenda,Looper,breNDa.LooPEr355@gmail.com,+44 6223 474 884,27/8/1989,Norwich,Lincolnshire,active,Brenda Looper
+CUS3675,Diane,Kennedy,DIAnE.kEnnEDY553@yahoo.gov,+44 3741 936 028,4/4/1904,Dumfries,City of London,active,Diane Kennedy
+CUS0769,David,Graham,dAvId.GrAhAm403@yahoo.org,+44 9544 506 127,2/9/1932,Durham,Clackmannanshire,active,David Graham
+
+
+==================================================
+File: output/active_customer_orders.csv
+==================================================
+UniqueID,CustomerID,ProductName,Quantity,UnitPrice,DeliveryMethod,Total Price
+ORD4940,CUS2678,Ship Ticket from Sydney to Madrid,8,243.92,Postage,1951.36
+ORD3633,CUS0707,Train Ticket from Moscow to Hong Kong,4,176.06,Carrier Pigeon,704.24
+ORD2417,CUS0707,Flight Ticket from Berlin to Madrid,10,271.27,Pick-up at Station,2712.70
+ORD6528,CUS0707,Ship Ticket from Paris to Dubai,3,323.45,Mobile,970.35
+ORD4733,CUS0707,Gondola Ticket from Moscow to Singapore,9,130.25,Mobile,1172.25
+ORD1787,CUS1197,Bus Ticket from Sydney to Rome,6,196.75,Pick-up at Station,1180.50
+ORD9005,CUS4421,Bus Ticket from London to Dubai,4,218.9,Carrier Pigeon,875.60
+ORD4139,CUS4614,Gondola Ticket from Tokyo to Rome,1,129.86,Postage,129.86
+ORD5200,CUS4614,Train Ticket from Paris to Los Angeles,10,113.97,Carrier Pigeon,1139.70
+ORD5801,CUS3117,Gondola Ticket from Moscow to Madrid,2,105.57,Mobile,211.14
+ORD3543,CUS3117,Gondola Ticket from London to Rome,6,291.09,Postage,1746.54
+ORD5274,CUS6191,Flight Ticket from Berlin to Madrid,6,97.47,Postage,584.82
+ORD3237,CUS6841,Taxi Ticket from Moscow to Los Angeles,8,41.28,Fax,330.24
+ORD1190,CUS7385,Taxi Ticket from Moscow to Singapore,8,81.16,Fax,649.28
+ORD8214,CUS7385,Gondola Ticket from Tokyo to Los Angeles,3,84.44,Carrier Pigeon,253.32
+ORD8243,CUS7385,Taxi Ticket from Paris to Rome,3,98.93,Pick-up at Station,296.79
+ORD9485,CUS5897,Gondola Ticket from Sydney to Los Angeles,6,22.45,Pick-up at Station,134.70
+ORD9482,CUS8037,Train Ticket from Berlin to Hong Kong,2,210.04,Fax,420.08
+
+
+==================================================
+File: .env
+==================================================
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=p@ssw0rd
+DB_NAME=shopdb
+DB_PORT=3306
+API_PORT=8000
+OUTPUT_DIR=output
+
+==================================================
+File: LICENSE
+==================================================
+                    GNU GENERAL PUBLIC LICENSE
+                       Version 3, 29 June 2007
+
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
+
+                            Preamble
+
+  The GNU General Public License is a free, copyleft license for
+software and other kinds of works.
+
+  The licenses for most software and other practical works are designed
+to take away your freedom to share and change the works.  By contrast,
+the GNU General Public License is intended to guarantee your freedom to
+share and change all versions of a program--to make sure it remains free
+software for all its users.  We, the Free Software Foundation, use the
+GNU General Public License for most of our software; it applies also to
+any other work released this way by its authors.  You can apply it to
+your programs, too.
+
+  When we speak of free software, we are referring to freedom, not
+price.  Our General Public Licenses are designed to make sure that you
+have the freedom to distribute copies of free software (and charge for
+them if you wish), that you receive source code or can get it if you
+want it, that you can change the software or use pieces of it in new
+free programs, and that you know you can do these things.
+
+  To protect your rights, we need to prevent others from denying you
+these rights or asking you to surrender the rights.  Therefore, you have
+certain responsibilities if you distribute copies of the software, or if
+you modify it: responsibilities to respect the freedom of others.
+
+  For example, if you distribute copies of such a program, whether
+gratis or for a fee, you must pass on to the recipients the same
+freedoms that you received.  You must make sure that they, too, receive
+or can get the source code.  And you must show them these terms so they
+know their rights.
+
+  Developers that use the GNU GPL protect your rights with two steps:
+(1) assert copyright on the software, and (2) offer you this License
+giving you legal permission to copy, distribute and/or modify it.
+
+  For the developers' and authors' protection, the GPL clearly explains
+that there is no warranty for this free software.  For both users' and
+authors' sake, the GPL requires that modified versions be marked as
+changed, so that their problems will not be attributed erroneously to
+authors of previous versions.
+
+  Some devices are designed to deny users access to install or run
+modified versions of the software inside them, although the manufacturer
+can do so.  This is fundamentally incompatible with the aim of
+protecting users' freedom to change the software.  The systematic
+pattern of such abuse occurs in the area of products for individuals to
+use, which is precisely where it is most unacceptable.  Therefore, we
+have designed this version of the GPL to prohibit the practice for those
+products.  If such problems arise substantially in other domains, we
+stand ready to extend this provision to those domains in future versions
+of the GPL, as needed to protect the freedom of users.
+
+  Finally, every program is threatened constantly by software patents.
+States should not allow patents to restrict development and use of
+software on general-purpose computers, but in those that do, we wish to
+avoid the special danger that patents applied to a free program could
+make it effectively proprietary.  To prevent this, the GPL assures that
+patents cannot be used to render the program non-free.
+
+  The precise terms and conditions for copying, distribution and
+modification follow.
+
+                       TERMS AND CONDITIONS
+
+  0. Definitions.
+
+  "This License" refers to version 3 of the GNU General Public License.
+
+  "Copyright" also means copyright-like laws that apply to other kinds of
+works, such as semiconductor masks.
+
+  "The Program" refers to any copyrightable work licensed under this
+License.  Each licensee is addressed as "you".  "Licensees" and
+"recipients" may be individuals or organizations.
+
+  To "modify" a work means to copy from or adapt all or part of the work
+in a fashion requiring copyright permission, other than the making of an
+exact copy.  The resulting work is called a "modified version" of the
+earlier work or a work "based on" the earlier work.
+
+  A "covered work" means either the unmodified Program or a work based
+on the Program.
+
+  To "propagate" a work means to do anything with it that, without
+permission, would make you directly or secondarily liable for
+infringement under applicable copyright law, except executing it on a
+computer or modifying a private copy.  Propagation includes copying,
+distribution (with or without modification), making available to the
+public, and in some countries other activities as well.
+
+  To "convey" a work means any kind of propagation that enables other
+parties to make or receive copies.  Mere interaction with a user through
+a computer network, with no transfer of a copy, is not conveying.
+
+  An interactive user interface displays "Appropriate Legal Notices"
+to the extent that it includes a convenient and prominently visible
+feature that (1) displays an appropriate copyright notice, and (2)
+tells the user that there is no warranty for the work (except to the
+extent that warranties are provided), that licensees may convey the
+work under this License, and how to view a copy of this License.  If
+the interface presents a list of user commands or options, such as a
+menu, a prominent item in the list meets this criterion.
+
+  1. Source Code.
+
+  The "source code" for a work means the preferred form of the work
+for making modifications to it.  "Object code" means any non-source
+form of a work.
+
+  A "Standard Interface" means an interface that either is an official
+standard defined by a recognized standards body, or, in the case of
+interfaces specified for a particular programming language, one that
+is widely used among developers working in that language.
+
+  The "System Libraries" of an executable work include anything, other
+than the work as a whole, that (a) is included in the normal form of
+packaging a Major Component, but which is not part of that Major
+Component, and (b) serves only to enable use of the work with that
+Major Component, or to implement a Standard Interface for which an
+implementation is available to the public in source code form.  A
+"Major Component", in this context, means a major essential component
+(kernel, window system, and so on) of the specific operating system
+(if any) on which the executable work runs, or a compiler used to
+produce the work, or an object code interpreter used to run it.
+
+  The "Corresponding Source" for a work in object code form means all
+the source code needed to generate, install, and (for an executable
+work) run the object code and to modify the work, including scripts to
+control those activities.  However, it does not include the work's
+System Libraries, or general-purpose tools or generally available free
+programs which are used unmodified in performing those activities but
+which are not part of the work.  For example, Corresponding Source
+includes interface definition files associated with source files for
+the work, and the source code for shared libraries and dynamically
+linked subprograms that the work is specifically designed to require,
+such as by intimate data communication or control flow between those
+subprograms and other parts of the work.
+
+  The Corresponding Source need not include anything that users
+can regenerate automatically from other parts of the Corresponding
+Source.
+
+  The Corresponding Source for a work in source code form is that
+same work.
+
+  2. Basic Permissions.
+
+  All rights granted under this License are granted for the term of
+copyright on the Program, and are irrevocable provided the stated
+conditions are met.  This License explicitly affirms your unlimited
+permission to run the unmodified Program.  The output from running a
+covered work is covered by this License only if the output, given its
+content, constitutes a covered work.  This License acknowledges your
+rights of fair use or other equivalent, as provided by copyright law.
+
+  You may make, run and propagate covered works that you do not
+convey, without conditions so long as your license otherwise remains
+in force.  You may convey covered works to others for the sole purpose
+of having them make modifications exclusively for you, or provide you
+with facilities for running those works, provided that you comply with
+the terms of this License in conveying all material for which you do
+not control copyright.  Those thus making or running the covered works
+for you must do so exclusively on your behalf, under your direction
+and control, on terms that prohibit them from making any copies of
+your copyrighted material outside their relationship with you.
+
+  Conveying under any other circumstances is permitted solely under
+the conditions stated below.  Sublicensing is not allowed; section 10
+makes it unnecessary.
+
+  3. Protecting Users' Legal Rights From Anti-Circumvention Law.
+
+  No covered work shall be deemed part of an effective technological
+measure under any applicable law fulfilling obligations under article
+11 of the WIPO copyright treaty adopted on 20 December 1996, or
+similar laws prohibiting or restricting circumvention of such
+measures.
+
+  When you convey a covered work, you waive any legal power to forbid
+circumvention of technological measures to the extent such circumvention
+is effected by exercising rights under this License with respect to
+the covered work, and you disclaim any intention to limit operation or
+modification of the work as a means of enforcing, against the work's
+users, your or third parties' legal rights to forbid circumvention of
+technological measures.
+
+  4. Conveying Verbatim Copies.
+
+  You may convey verbatim copies of the Program's source code as you
+receive it, in any medium, provided that you conspicuously and
+appropriately publish on each copy an appropriate copyright notice;
+keep intact all notices stating that this License and any
+non-permissive terms added in accord with section 7 apply to the code;
+keep intact all notices of the absence of any warranty; and give all
+recipients a copy of this License along with the Program.
+
+  You may charge any price or no price for each copy that you convey,
+and you may offer support or warranty protection for a fee.
+
+  5. Conveying Modified Source Versions.
+
+  You may convey a work based on the Program, or the modifications to
+produce it from the Program, in the form of source code under the
+terms of section 4, provided that you also meet all of these conditions:
+
+    a) The work must carry prominent notices stating that you modified
+    it, and giving a relevant date.
+
+    b) The work must carry prominent notices stating that it is
+    released under this License and any conditions added under section
+    7.  This requirement modifies the requirement in section 4 to
+    "keep intact all notices".
+
+    c) You must license the entire work, as a whole, under this
+    License to anyone who comes into possession of a copy.  This
+    License will therefore apply, along with any applicable section 7
+    additional terms, to the whole of the work, and all its parts,
+    regardless of how they are packaged.  This License gives no
+    permission to license the work in any other way, but it does not
+    invalidate such permission if you have separately received it.
+
+    d) If the work has interactive user interfaces, each must display
+    Appropriate Legal Notices; however, if the Program has interactive
+    interfaces that do not display Appropriate Legal Notices, your
+    work need not make them do so.
+
+  A compilation of a covered work with other separate and independent
+works, which are not by their nature extensions of the covered work,
+and which are not combined with it such as to form a larger program,
+in or on a volume of a storage or distribution medium, is called an
+"aggregate" if the compilation and its resulting copyright are not
+used to limit the access or legal rights of the compilation's users
+beyond what the individual works permit.  Inclusion of a covered work
+in an aggregate does not cause this License to apply to the other
+parts of the aggregate.
+
+  6. Conveying Non-Source Forms.
+
+  You may convey a covered work in object code form under the terms
+of sections 4 and 5, provided that you also convey the
+machine-readable Corresponding Source under the terms of this License,
+in one of these ways:
+
+    a) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by the
+    Corresponding Source fixed on a durable physical medium
+    customarily used for software interchange.
+
+    b) Convey the object code in, or embodied in, a physical product
+    (including a physical distribution medium), accompanied by a
+    written offer, valid for at least three years and valid for as
+    long as you offer spare parts or customer support for that product
+    model, to give anyone who possesses the object code either (1) a
+    copy of the Corresponding Source for all the software in the
+    product that is covered by this License, on a durable physical
+    medium customarily used for software interchange, for a price no
+    more than your reasonable cost of physically performing this
+    conveying of source, or (2) access to copy the
+    Corresponding Source from a network server at no charge.
+
+    c) Convey individual copies of the object code with a copy of the
+    written offer to provide the Corresponding Source.  This
+    alternative is allowed only occasionally and noncommercially, and
+    only if you received the object code with such an offer, in accord
+    with subsection 6b.
+
+    d) Convey the object code by offering access from a designated
+    place (gratis or for a charge), and offer equivalent access to the
+    Corresponding Source in the same way through the same place at no
+    further charge.  You need not require recipients to copy the
+    Corresponding Source along with the object code.  If the place to
+    copy the object code is a network server, the Corresponding Source
+    may be on a different server (operated by you or a third party)
+    that supports equivalent copying facilities, provided you maintain
+    clear directions next to the object code saying where to find the
+    Corresponding Source.  Regardless of what server hosts the
+    Corresponding Source, you remain obligated to ensure that it is
+    available for as long as needed to satisfy these requirements.
+
+    e) Convey the object code using peer-to-peer transmission, provided
+    you inform other peers where the object code and Corresponding
+    Source of the work are being offered to the general public at no
+    charge under subsection 6d.
+
+  A separable portion of the object code, whose source code is excluded
+from the Corresponding Source as a System Library, need not be
+included in conveying the object code work.
+
+  A "User Product" is either (1) a "consumer product", which means any
+tangible personal property which is normally used for personal, family,
+or household purposes, or (2) anything designed or sold for incorporation
+into a dwelling.  In determining whether a product is a consumer product,
+doubtful cases shall be resolved in favor of coverage.  For a particular
+product received by a particular user, "normally used" refers to a
+typical or common use of that class of product, regardless of the status
+of the particular user or of the way in which the particular user
+actually uses, or expects or is expected to use, the product.  A product
+is a consumer product regardless of whether the product has substantial
+commercial, industrial or non-consumer uses, unless such uses represent
+the only significant mode of use of the product.
+
+  "Installation Information" for a User Product means any methods,
+procedures, authorization keys, or other information required to install
+and execute modified versions of a covered work in that User Product from
+a modified version of its Corresponding Source.  The information must
+suffice to ensure that the continued functioning of the modified object
+code is in no case prevented or interfered with solely because
+modification has been made.
+
+  If you convey an object code work under this section in, or with, or
+specifically for use in, a User Product, and the conveying occurs as
+part of a transaction in which the right of possession and use of the
+User Product is transferred to the recipient in perpetuity or for a
+fixed term (regardless of how the transaction is characterized), the
+Corresponding Source conveyed under this section must be accompanied
+by the Installation Information.  But this requirement does not apply
+if neither you nor any third party retains the ability to install
+modified object code on the User Product (for example, the work has
+been installed in ROM).
+
+  The requirement to provide Installation Information does not include a
+requirement to continue to provide support service, warranty, or updates
+for a work that has been modified or installed by the recipient, or for
+the User Product in which it has been modified or installed.  Access to a
+network may be denied when the modification itself materially and
+adversely affects the operation of the network or violates the rules and
+protocols for communication across the network.
+
+  Corresponding Source conveyed, and Installation Information provided,
+in accord with this section must be in a format that is publicly
+documented (and with an implementation available to the public in
+source code form), and must require no special password or key for
+unpacking, reading or copying.
+
+  7. Additional Terms.
+
+  "Additional permissions" are terms that supplement the terms of this
+License by making exceptions from one or more of its conditions.
+Additional permissions that are applicable to the entire Program shall
+be treated as though they were included in this License, to the extent
+that they are valid under applicable law.  If additional permissions
+apply only to part of the Program, that part may be used separately
+under those permissions, but the entire Program remains governed by
+this License without regard to the additional permissions.
+
+  When you convey a copy of a covered work, you may at your option
+remove any additional permissions from that copy, or from any part of
+it.  (Additional permissions may be written to require their own
+removal in certain cases when you modify the work.)  You may place
+additional permissions on material, added by you to a covered work,
+for which you have or can give appropriate copyright permission.
+
+  Notwithstanding any other provision of this License, for material you
+add to a covered work, you may (if authorized by the copyright holders of
+that material) supplement the terms of this License with terms:
+
+    a) Disclaiming warranty or limiting liability differently from the
+    terms of sections 15 and 16 of this License; or
+
+    b) Requiring preservation of specified reasonable legal notices or
+    author attributions in that material or in the Appropriate Legal
+    Notices displayed by works containing it; or
+
+    c) Prohibiting misrepresentation of the origin of that material, or
+    requiring that modified versions of such material be marked in
+    reasonable ways as different from the original version; or
+
+    d) Limiting the use for publicity purposes of names of licensors or
+    authors of the material; or
+
+    e) Declining to grant rights under trademark law for use of some
+    trade names, trademarks, or service marks; or
+
+    f) Requiring indemnification of licensors and authors of that
+    material by anyone who conveys the material (or modified versions of
+    it) with contractual assumptions of liability to the recipient, for
+    any liability that these contractual assumptions directly impose on
+    those licensors and authors.
+
+  All other non-permissive additional terms are considered "further
+restrictions" within the meaning of section 10.  If the Program as you
+received it, or any part of it, contains a notice stating that it is
+governed by this License along with a term that is a further
+restriction, you may remove that term.  If a license document contains
+a further restriction but permits relicensing or conveying under this
+License, you may add to a covered work material governed by the terms
+of that license document, provided that the further restriction does
+not survive such relicensing or conveying.
+
+  If you add terms to a covered work in accord with this section, you
+must place, in the relevant source files, a statement of the
+additional terms that apply to those files, or a notice indicating
+where to find the applicable terms.
+
+  Additional terms, permissive or non-permissive, may be stated in the
+form of a separately written license, or stated as exceptions;
+the above requirements apply either way.
+
+  8. Termination.
+
+  You may not propagate or modify a covered work except as expressly
+provided under this License.  Any attempt otherwise to propagate or
+modify it is void, and will automatically terminate your rights under
+this License (including any patent licenses granted under the third
+paragraph of section 11).
+
+  However, if you cease all violation of this License, then your
+license from a particular copyright holder is reinstated (a)
+provisionally, unless and until the copyright holder explicitly and
+finally terminates your license, and (b) permanently, if the copyright
+holder fails to notify you of the violation by some reasonable means
+prior to 60 days after the cessation.
+
+  Moreover, your license from a particular copyright holder is
+reinstated permanently if the copyright holder notifies you of the
+violation by some reasonable means, this is the first time you have
+received notice of violation of this License (for any work) from that
+copyright holder, and you cure the violation prior to 30 days after
+your receipt of the notice.
+
+  Termination of your rights under this section does not terminate the
+licenses of parties who have received copies or rights from you under
+this License.  If your rights have been terminated and not permanently
+reinstated, you do not qualify to receive new licenses for the same
+material under section 10.
+
+  9. Acceptance Not Required for Having Copies.
+
+  You are not required to accept this License in order to receive or
+run a copy of the Program.  Ancillary propagation of a covered work
+occurring solely as a consequence of using peer-to-peer transmission
+to receive a copy likewise does not require acceptance.  However,
+nothing other than this License grants you permission to propagate or
+modify any covered work.  These actions infringe copyright if you do
+not accept this License.  Therefore, by modifying or propagating a
+covered work, you indicate your acceptance of this License to do so.
+
+  10. Automatic Licensing of Downstream Recipients.
+
+  Each time you convey a covered work, the recipient automatically
+receives a license from the original licensors, to run, modify and
+propagate that work, subject to this License.  You are not responsible
+for enforcing compliance by third parties with this License.
+
+  An "entity transaction" is a transaction transferring control of an
+organization, or substantially all assets of one, or subdividing an
+organization, or merging organizations.  If propagation of a covered
+work results from an entity transaction, each party to that
+transaction who receives a copy of the work also receives whatever
+licenses to the work the party's predecessor in interest had or could
+give under the previous paragraph, plus a right to possession of the
+Corresponding Source of the work from the predecessor in interest, if
+the predecessor has it or can get it with reasonable efforts.
+
+  You may not impose any further restrictions on the exercise of the
+rights granted or affirmed under this License.  For example, you may
+not impose a license fee, royalty, or other charge for exercise of
+rights granted under this License, and you may not initiate litigation
+(including a cross-claim or counterclaim in a lawsuit) alleging that
+any patent claim is infringed by making, using, selling, offering for
+sale, or importing the Program or any portion of it.
+
+  11. Patents.
+
+  A "contributor" is a copyright holder who authorizes use under this
+License of the Program or a work on which the Program is based.  The
+work thus licensed is called the contributor's "contributor version".
+
+  A contributor's "essential patent claims" are all patent claims
+owned or controlled by the contributor, whether already acquired or
+hereafter acquired, that would be infringed by some manner, permitted
+by this License, of making, using, or selling its contributor version,
+but do not include claims that would be infringed only as a
+consequence of further modification of the contributor version.  For
+purposes of this definition, "control" includes the right to grant
+patent sublicenses in a manner consistent with the requirements of
+this License.
+
+  Each contributor grants you a non-exclusive, worldwide, royalty-free
+patent license under the contributor's essential patent claims, to
+make, use, sell, offer for sale, import and otherwise run, modify and
+propagate the contents of its contributor version.
+
+  In the following three paragraphs, a "patent license" is any express
+agreement or commitment, however denominated, not to enforce a patent
+(such as an express permission to practice a patent or covenant not to
+sue for patent infringement).  To "grant" such a patent license to a
+party means to make such an agreement or commitment not to enforce a
+patent against the party.
+
+  If you convey a covered work, knowingly relying on a patent license,
+and the Corresponding Source of the work is not available for anyone
+to copy, free of charge and under the terms of this License, through a
+publicly available network server or other readily accessible means,
+then you must either (1) cause the Corresponding Source to be so
+available, or (2) arrange to deprive yourself of the benefit of the
+patent license for this particular work, or (3) arrange, in a manner
+consistent with the requirements of this License, to extend the patent
+license to downstream recipients.  "Knowingly relying" means you have
+actual knowledge that, but for the patent license, your conveying the
+covered work in a country, or your recipient's use of the covered work
+in a country, would infringe one or more identifiable patents in that
+country that you have reason to believe are valid.
+
+  If, pursuant to or in connection with a single transaction or
+arrangement, you convey, or propagate by procuring conveyance of, a
+covered work, and grant a patent license to some of the parties
+receiving the covered work authorizing them to use, propagate, modify
+or convey a specific copy of the covered work, then the patent license
+you grant is automatically extended to all recipients of the covered
+work and works based on it.
+
+  A patent license is "discriminatory" if it does not include within
+the scope of its coverage, prohibits the exercise of, or is
+conditioned on the non-exercise of one or more of the rights that are
+specifically granted under this License.  You may not convey a covered
+work if you are a party to an arrangement with a third party that is
+in the business of distributing software, under which you make payment
+to the third party based on the extent of your activity of conveying
+the work, and under which the third party grants, to any of the
+parties who would receive the covered work from you, a discriminatory
+patent license (a) in connection with copies of the covered work
+conveyed by you (or copies made from those copies), or (b) primarily
+for and in connection with specific products or compilations that
+contain the covered work, unless you entered into that arrangement,
+or that patent license was granted, prior to 28 March 2007.
+
+  Nothing in this License shall be construed as excluding or limiting
+any implied license or other defenses to infringement that may
+otherwise be available to you under applicable patent law.
+
+  12. No Surrender of Others' Freedom.
+
+  If conditions are imposed on you (whether by court order, agreement or
+otherwise) that contradict the conditions of this License, they do not
+excuse you from the conditions of this License.  If you cannot convey a
+covered work so as to satisfy simultaneously your obligations under this
+License and any other pertinent obligations, then as a consequence you may
+not convey it at all.  For example, if you agree to terms that obligate you
+to collect a royalty for further conveying from those to whom you convey
+the Program, the only way you could satisfy both those terms and this
+License would be to refrain entirely from conveying the Program.
+
+  13. Use with the GNU Affero General Public License.
+
+  Notwithstanding any other provision of this License, you have
+permission to link or combine any covered work with a work licensed
+under version 3 of the GNU Affero General Public License into a single
+combined work, and to convey the resulting work.  The terms of this
+License will continue to apply to the part which is the covered work,
+but the special requirements of the GNU Affero General Public License,
+section 13, concerning interaction through a network will apply to the
+combination as such.
+
+  14. Revised Versions of this License.
+
+  The Free Software Foundation may publish revised and/or new versions of
+the GNU General Public License from time to time.  Such new versions will
+be similar in spirit to the present version, but may differ in detail to
+address new problems or concerns.
+
+  Each version is given a distinguishing version number.  If the
+Program specifies that a certain numbered version of the GNU General
+Public License "or any later version" applies to it, you have the
+option of following the terms and conditions either of that numbered
+version or of any later version published by the Free Software
+Foundation.  If the Program does not specify a version number of the
+GNU General Public License, you may choose any version ever published
+by the Free Software Foundation.
+
+  If the Program specifies that a proxy can decide which future
+versions of the GNU General Public License can be used, that proxy's
+public statement of acceptance of a version permanently authorizes you
+to choose that version for the Program.
+
+  Later license versions may give you additional or different
+permissions.  However, no additional obligations are imposed on any
+author or copyright holder as a result of your choosing to follow a
+later version.
+
+  15. Disclaimer of Warranty.
+
+  THERE IS NO WARRANTY FOR THE PROGRAM, TO THE EXTENT PERMITTED BY
+APPLICABLE LAW.  EXCEPT WHEN OTHERWISE STATED IN WRITING THE COPYRIGHT
+HOLDERS AND/OR OTHER PARTIES PROVIDE THE PROGRAM "AS IS" WITHOUT WARRANTY
+OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE.  THE ENTIRE RISK AS TO THE QUALITY AND PERFORMANCE OF THE PROGRAM
+IS WITH YOU.  SHOULD THE PROGRAM PROVE DEFECTIVE, YOU ASSUME THE COST OF
+ALL NECESSARY SERVICING, REPAIR OR CORRECTION.
+
+  16. Limitation of Liability.
+
+  IN NO EVENT UNLESS REQUIRED BY APPLICABLE LAW OR AGREED TO IN WRITING
+WILL ANY COPYRIGHT HOLDER, OR ANY OTHER PARTY WHO MODIFIES AND/OR CONVEYS
+THE PROGRAM AS PERMITTED ABOVE, BE LIABLE TO YOU FOR DAMAGES, INCLUDING ANY
+GENERAL, SPECIAL, INCIDENTAL OR CONSEQUENTIAL DAMAGES ARISING OUT OF THE
+USE OR INABILITY TO USE THE PROGRAM (INCLUDING BUT NOT LIMITED TO LOSS OF
+DATA OR DATA BEING RENDERED INACCURATE OR LOSSES SUSTAINED BY YOU OR THIRD
+PARTIES OR A FAILURE OF THE PROGRAM TO OPERATE WITH ANY OTHER PROGRAMS),
+EVEN IF SUCH HOLDER OR OTHER PARTY HAS BEEN ADVISED OF THE POSSIBILITY OF
+SUCH DAMAGES.
+
+  17. Interpretation of Sections 15 and 16.
+
+  If the disclaimer of warranty and limitation of liability provided
+above cannot be given local legal effect according to their terms,
+reviewing courts shall apply local law that most closely approximates
+an absolute waiver of all civil liability in connection with the
+Program, unless a warranty or assumption of liability accompanies a
+copy of the Program in return for a fee.
+
+                     END OF TERMS AND CONDITIONS
+
+            How to Apply These Terms to Your New Programs
+
+  If you develop a new program, and you want it to be of the greatest
+possible use to the public, the best way to achieve this is to make it
+free software which everyone can redistribute and change under these terms.
+
+  To do so, attach the following notices to the program.  It is safest
+to attach them to the start of each source file to most effectively
+state the exclusion of warranty; and each file should have at least
+the "copyright" line and a pointer to where the full notice is found.
+
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) <year>  <name of author>
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+Also add information on how to contact you by electronic and paper mail.
+
+  If the program does terminal interaction, make it output a short
+notice like this when it starts in an interactive mode:
+
+    <program>  Copyright (C) <year>  <name of author>
+    This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
+    This is free software, and you are welcome to redistribute it
+    under certain conditions; type `show c' for details.
+
+The hypothetical commands `show w' and `show c' should show the appropriate
+parts of the General Public License.  Of course, your program's commands
+might be different; for a GUI interface, you would use an "about box".
+
+  You should also get your employer (if you work as a programmer) or school,
+if any, to sign a "copyright disclaimer" for the program, if necessary.
+For more information on this, and how to apply and follow the GNU GPL, see
+<https://www.gnu.org/licenses/>.
+
+  The GNU General Public License does not permit incorporating your program
+into proprietary programs.  If your program is a subroutine library, you
+may consider it more useful to permit linking proprietary applications with
+the library.  If this is what you want to do, use the GNU Lesser General
+Public License instead of this License.  But first, please read
+<https://www.gnu.org/licenses/why-not-lgpl.html>.
+

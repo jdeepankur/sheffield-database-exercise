@@ -1,5 +1,6 @@
 import subprocess, time
 from utilities.environment import env
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 
 name = "mySQL-shop"
 
@@ -66,22 +67,27 @@ def run():
 def wait(mysqldb):
     # Wait for mySQL to start accepting connections from scripts
     max_attempts = 30
-    attempt = 0
-    while attempt < max_attempts:
-        try:
-            test_db = mysqldb.connect(
-                host=env("DB_HOST"),
-                user=env("DB_USER"),
-                password=env("DB_PASSWORD"),
-                port=int(env("DB_PORT")),
-            )
-            test_db.close()
-            return
-        except mysqldb.Error:
-            if attempt == 0:
-                print("Waiting for MySQL to start...")
-            attempt += 1
-            time.sleep(2)
-            print(f"Attempt {attempt}/{max_attempts}: MySQL not ready yet...")
+
+    with Progress(
+        SpinnerColumn(),
+        BarColumn(),
+        TextColumn("{task.completed}/{task.total} attempts"),
+        transient=True,
+    ) as progress:
+        task = progress.add_task("Waiting for MySQL to start...", total=max_attempts)
+
+        for _ in range(max_attempts):
+            try:
+                test_db = mysqldb.connect(
+                    host=env("DB_HOST"),
+                    user=env("DB_USER"),
+                    password=env("DB_PASSWORD"),
+                    port=int(env("DB_PORT")),
+                )
+                test_db.close()
+                return
+            except mysqldb.Error:
+                time.sleep(2)
+                progress.advance(task)
 
     raise Exception("MySQL failed to start after maximum attempts.")
