@@ -23,10 +23,14 @@ dbsetup.run()
 dbsetup.wait(mysqldb)
 
 # Next a connection has to be established to the mySQL database
-db = mysqldb.connect(
-    host=env("DB_HOST"), user=env("DB_USER"), password=env("DB_PASSWORD")
-)
-cursor = db.cursor(buffered=True)
+try:
+    db = mysqldb.connect(
+        host=env("DB_HOST"), user=env("DB_USER"), password=env("DB_PASSWORD")
+    )
+    cursor = db.cursor(buffered=True)
+except mysqldb.Error as err:
+    print(f"Error connecting to MySQL: {err}")
+    exit(1)
 
 # Now the database can be created and entered if it doesn't already exist
 cursor.execute(f"CREATE DATABASE IF NOT EXISTS {dbname}")

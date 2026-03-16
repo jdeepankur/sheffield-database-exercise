@@ -8,7 +8,9 @@ try:
             var, value = line.strip().split("=", 1)
             vars[var] = value
 except FileNotFoundError:
-    print(f"You need to create a {path} file to operate the application! Copy .env.example to {path} and change values if necessary.")
+    print(
+        f"You need to create a {path} file to operate the application! Copy .env.example to {path} and change values if necessary."
+    )
 
     for line in f:
         line = line.strip()
