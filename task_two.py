@@ -55,7 +55,7 @@ def fetchCustomer(id):
             return {"error": "Customer not found"}
 
     else:
-        if (customer := htmlClean(customer)):
+        if customer := htmlClean(customer):
             profile = f"""
             <html>
             <body>

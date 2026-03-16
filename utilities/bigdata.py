@@ -129,14 +129,27 @@ towns = [
     "Greenock",
 ]
 
-transit = ['Flight', 'Taxi', 'Train', 'Bus', 'Coach', 'Tube', 'Gondola', 'Ship']
-places = ['London', 'Paris', 'New York', 'Tokyo', 'Sydney', 'Berlin', 'Moscow'] + ['Rome', 'Madrid', 'Dubai', 'Singapore', 'Hong Kong', 'Los Angeles']
+transit = ["Flight", "Taxi", "Train", "Bus", "Coach", "Tube", "Gondola", "Ship"]
+places = ["London", "Paris", "New York", "Tokyo", "Sydney", "Berlin", "Moscow"] + [
+    "Rome",
+    "Madrid",
+    "Dubai",
+    "Singapore",
+    "Hong Kong",
+    "Los Angeles",
+]
 couriers = ["Mobile", "Pick-up at Station", "Postage", "Fax", "Carrier Pigeon"]
 
+
 def statuses(rows):
-    statuses = ["active"] * int(0.6 * rows) + ["archived"] * int(0.2 * rows) + ["suspended"] * int(0.2 * rows)
+    statuses = (
+        ["active"] * int(0.6 * rows)
+        + ["archived"] * int(0.2 * rows)
+        + ["suspended"] * int(0.2 * rows)
+    )
     random.shuffle(statuses)
     return statuses
 
-domains = ['org', 'com', 'net', 'co.uk', 'gov']
-emails = ['gmail', 'yahoo', 'yandex', 'hotmail', 'outlook']
+
+domains = ["org", "com", "net", "co.uk", "gov"]
+emails = ["gmail", "yahoo", "yandex", "hotmail", "outlook"]
