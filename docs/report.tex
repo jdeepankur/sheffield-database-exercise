@@ -1,0 +1,41 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{fancyhdr}
+\usepackage{fontenc}
+\usepackage{inputenc}
+
+% Colour scheme
+\definecolor{codeblue}{RGB}{30,100,180}
+\definecolor{codegray}{RGB}{245,245,245}
+\definecolor{codecomment}{RGB}{100,100,100}
+\definecolor{codestring}{RGB}{180,60,40}
+\definecolor{accentblue}{RGB}{0,80,160}
+
+% Code listing style
+\lstdefinestyle{codestyle}{
+    backgroundcolor=\color{codegray},
+    commentstyle=\color{codecomment}\itshape,
+    keywordstyle=\color{codeblue}\bfseries,
+    stringstyle=\color{codestring},
+    basicstyle=\ttfamily\small,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2,
+    frame=single,
+    framerule=0.4pt,
+    rulecolor=\color{gray!40}
+}
